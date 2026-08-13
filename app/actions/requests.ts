@@ -1,0 +1,149 @@
+"use server";
+
+import postgres from "postgres";
+import { revalidatePath } from "next/cache";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+
+const sql = postgres(process.env.DATABASE_URL as string, { ssl: "require" });
+
+export type Transaction = {
+  id: string;
+  material_id: string;
+  user_id: string;
+  type: "OUTBOUND" | "INBOUND";
+  quantity: number;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+  remark: string | null;
+  created_at: Date;
+  updated_at: Date;
+  // Joined fields
+  material_name?: string;
+  material_image?: string;
+  user_name?: string;
+};
+
+// Create a new material request (user)
+export async function createRequest(materialId: string, quantity: number, remark?: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    await sql`
+      INSERT INTO transactions (material_id, user_id, type, quantity, status, remark)
+      VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null})
+    `;
+    
+    revalidatePath("/requests");
+    revalidatePath("/admin/requests");
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating request:", error);
+    return { success: false, error: "Failed to create request" };
+  }
+}
+
+// Get all pending requests (admin)
+export async function getPendingRequests() {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    // Fetch transactions with material details
+    const transactions = await sql<Transaction[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image 
+      FROM transactions t
+      JOIN materials m ON t.material_id = m.id
+      WHERE t.type = 'OUTBOUND' AND t.status = 'PENDING'
+      ORDER BY t.created_at ASC
+    `;
+    
+    // Fetch user details from Clerk
+    const client = await clerkClient();
+    const users = await client.users.getUserList({
+      userId: transactions.map(t => t.user_id)
+    });
+    
+    // Attach user names
+    return transactions.map(t => {
+      const u = users.data.find(user => user.id === t.user_id);
+      return {
+        ...t,
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress) : "Unknown User"
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching pending requests:", error);
+    return [];
+  }
+}
+
+// Approve or Reject a request (admin)
+export async function updateRequestStatus(transactionId: string, newStatus: "APPROVED" | "REJECTED") {
+  try {
+    const { userId } = await auth();
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId!);
+    
+    if (user.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    await sql.begin(async (sql) => {
+      // Get the transaction
+      const [tx] = await sql`
+        SELECT * FROM transactions WHERE id = ${transactionId} AND status = 'PENDING'
+      `;
+      if (!tx) throw new Error("Transaction not found or already processed");
+
+      // Update transaction status
+      await sql`
+        UPDATE transactions SET status = ${newStatus}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${transactionId}
+      `;
+
+      // If approved, deduct material quantity
+      if (newStatus === "APPROVED") {
+        await sql`
+          UPDATE materials 
+          SET quantity = quantity - ${tx.quantity},
+              status = CASE 
+                         WHEN (quantity - ${tx.quantity}) <= 0 THEN 'OUT_OF_STOCK'
+                         WHEN (quantity - ${tx.quantity}) <= 5 THEN 'LOW_STOCK'
+                         ELSE 'AVAILABLE'
+                       END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${tx.material_id}
+        `;
+      }
+    });
+    
+    revalidatePath("/admin/requests");
+    revalidatePath("/admin");
+    revalidatePath("/requests");
+    revalidatePath("/inventory");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating request status:", error);
+    return { success: false, error: "Failed to update request status" };
+  }
+}
+
+// Get requests for a specific user
+export async function getUserRequests() {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const transactions = await sql<Transaction[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image 
+      FROM transactions t
+      JOIN materials m ON t.material_id = m.id
+      WHERE t.user_id = ${userId} AND t.type = 'OUTBOUND'
+      ORDER BY t.created_at DESC
+    `;
+    return transactions;
+  } catch (error) {
+    console.error("Error fetching user requests:", error);
+    return [];
+  }
+}
