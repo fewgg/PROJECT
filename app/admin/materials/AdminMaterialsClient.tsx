@@ -13,7 +13,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Material>>({
-    name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: "วัสดุคอมพิวเตอร์และไอที"
+    name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: "พัสดุคอมพิวเตอร์และไอที"
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -24,7 +24,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: "วัสดุคอมพิวเตอร์และไอที" });
+    setFormData({ name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: "พัสดุคอมพิวเตอร์และไอที" });
     setSelectedFile(null);
     setIsModalOpen(true);
   };
@@ -73,7 +73,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
       const res = await updateMaterial(editingId, finalFormData);
       if (res.success) {
         setMaterials(materials.map(m => m.id === editingId ? { ...m, ...finalFormData } as Material : m));
-        toast.success("แก้ไขวัสดุสำเร็จ");
+        toast.success("แก้ไขพัสดุสำเร็จ");
         setIsModalOpen(false);
       } else {
         toast.error("เกิดข้อผิดพลาดในการแก้ไข");
@@ -82,7 +82,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
       const res = await addMaterial(finalFormData as Omit<Material, "id">);
       if (res.success) {
         // Optimistic refresh (in real app, server action revalidatePath will fetch updated data on next load)
-        toast.success("เพิ่มวัสดุใหม่สำเร็จ");
+        toast.success("เพิ่มพัสดุใหม่สำเร็จ");
         setIsModalOpen(false);
         // Soft reload to get new ID from server
         window.location.reload();
@@ -95,11 +95,11 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("ยืนยันการลบวัสดุรายการนี้?")) {
+    if (confirm("ยืนยันการลบพัสดุรายการนี้?")) {
       const res = await deleteMaterial(id);
       if (res.success) {
         setMaterials(materials.filter(m => m.id !== id));
-        toast.success("ลบวัสดุสำเร็จ");
+        toast.success("ลบพัสดุสำเร็จ");
       } else {
         toast.error("ลบไม่สำเร็จ");
       }
@@ -112,7 +112,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
       return;
     }
     
-    const headers = ["รหัสวัสดุ", "ชื่อวัสดุ", "หมวดหมู่", "จำนวนคงเหลือ", "หน่วย", "สถานะ"];
+    const headers = ["รหัสพัสดุ", "ชื่อพัสดุ", "หมวดหมู่", "จำนวนคงเหลือ", "หน่วย", "สถานะ"];
     
     const csvRows = filteredMaterials.map(item => [
       item.id,
@@ -145,8 +145,8 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl kanit-bold text-slate-900 tracking-tight">จัดการวัสดุ</h1>
-          <p className="text-slate-500 kanit-regular mt-1 text-sm">เพิ่ม ลบ แก้ไข ข้อมูลวัสดุในคลัง (เชื่อมต่อฐานข้อมูลแล้ว)</p>
+          <h1 className="text-2xl kanit-bold text-slate-900 tracking-tight">จัดการพัสดุ</h1>
+          <p className="text-slate-500 kanit-regular mt-1 text-sm">เพิ่ม ลบ แก้ไข ข้อมูลพัสดุในคลัง (เชื่อมต่อฐานข้อมูลแล้ว)</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -157,7 +157,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
             ส่งออก (CSV)
           </button>
           <button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700 text-white kanit-medium text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2">
-            <Plus className="w-4 h-4" /> เพิ่มวัสดุใหม่
+            <Plus className="w-4 h-4" /> เพิ่มพัสดุใหม่
           </button>
         </div>
       </div>
@@ -168,7 +168,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="ค้นหาชื่อวัสดุ หรือ หมวดหมู่..." 
+              placeholder="ค้นหาชื่อพัสดุ หรือ หมวดหมู่..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg kanit-regular text-sm transition-all outline-none"
@@ -181,7 +181,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="px-6 py-4 kanit-medium text-sm text-slate-600 font-medium">รูปภาพ</th>
-                <th className="px-6 py-4 kanit-medium text-sm text-slate-600 font-medium">รหัส/ชื่อวัสดุ</th>
+                <th className="px-6 py-4 kanit-medium text-sm text-slate-600 font-medium">รหัส/ชื่อพัสดุ</th>
                 <th className="px-6 py-4 kanit-medium text-sm text-slate-600 font-medium">หมวดหมู่</th>
                 <th className="px-6 py-4 kanit-medium text-sm text-slate-600 font-medium">คงเหลือ</th>
                 <th className="px-6 py-4 kanit-medium text-sm text-slate-600 font-medium">สถานะ</th>
@@ -212,7 +212,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
                       item.status === 'LOW_STOCK' ? 'bg-amber-100 text-amber-800' :
                       'bg-rose-100 text-rose-800'
                     }`}>
-                      {item.status === 'AVAILABLE' ? 'มีสินค้า' :
+                      {item.status === 'AVAILABLE' ? 'มีพัสดุ' :
                        item.status === 'LOW_STOCK' ? 'ใกล้หมด' : 'หมด'}
                     </span>
                   </td>
@@ -234,7 +234,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
               {filteredMaterials.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500 kanit-regular">
-                    ไม่พบรายการวัสดุที่ค้นหา
+                    ไม่พบรายการพัสดุที่ค้นหา
                   </td>
                 </tr>
               )}
@@ -248,7 +248,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h2 className="text-xl kanit-semibold text-slate-800">{editingId ? "แก้ไขวัสดุ" : "เพิ่มวัสดุใหม่"}</h2>
+              <h2 className="text-xl kanit-semibold text-slate-800">{editingId ? "แก้ไขพัสดุ" : "เพิ่มพัสดุใหม่"}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -256,7 +256,7 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm kanit-medium text-slate-700 mb-1">ชื่อวัสดุ</label>
+                <label className="block text-sm kanit-medium text-slate-700 mb-1">ชื่อพัสดุ</label>
                 <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
               </div>
               
@@ -264,16 +264,16 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
                 <div>
                   <label className="block text-sm kanit-medium text-slate-700 mb-1">หมวดหมู่</label>
                   <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                    <option value="วัสดุคอมพิวเตอร์และไอที">ไอที</option>
-                    <option value="วัสดุสำนักงาน">สำนักงาน</option>
-                    <option value="วัสดุช่างและอุปกรณ์ทั่วไป">ช่างและอุปกรณ์</option>
-                    <option value="วัสดุทำความสะอาด">ทำความสะอาด</option>
+                    <option value="พัสดุคอมพิวเตอร์และไอที">ไอที</option>
+                    <option value="พัสดุสำนักงาน">สำนักงาน</option>
+                    <option value="พัสดุช่างและอุปกรณ์ทั่วไป">ช่างและอุปกรณ์</option>
+                    <option value="พัสดุทำความสะอาด">ทำความสะอาด</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm kanit-medium text-slate-700 mb-1">สถานะ</label>
                   <select required value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                    <option value="AVAILABLE">มีสินค้า</option>
+                    <option value="AVAILABLE">มีพัสดุ</option>
                     <option value="LOW_STOCK">ใกล้หมด</option>
                     <option value="OUT_OF_STOCK">หมด</option>
                   </select>

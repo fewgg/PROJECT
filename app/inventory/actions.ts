@@ -24,7 +24,7 @@ export async function addMaterial(formData: FormData) {
     `
     revalidatePath("/inventory")
     revalidatePath("/")
-    return { success: true, message: "เพิ่มวัสดุเรียบร้อยแล้ว" }
+    return { success: true, message: "เพิ่มพัสดุเรียบร้อยแล้ว" }
   } catch (error) {
     return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" }
   }
@@ -51,7 +51,7 @@ export async function updateMaterial(id: string, formData: FormData) {
     `
     revalidatePath("/inventory")
     revalidatePath("/")
-    return { success: true, message: "แก้ไขวัสดุเรียบร้อยแล้ว" }
+    return { success: true, message: "แก้ไขพัสดุเรียบร้อยแล้ว" }
   } catch (error) {
     return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" }
   }
@@ -65,8 +65,8 @@ export async function deleteMaterial(id: string) {
     await sql`DELETE FROM materials WHERE id = ${id}`
     revalidatePath("/inventory")
     revalidatePath("/")
-    return { success: true, message: "ลบวัสดุเรียบร้อยแล้ว" }
+    return { success: true, message: "ลบพัสดุเรียบร้อยแล้ว" }
   } catch (error) {
-    return { success: false, message: "ไม่สามารถลบวัสดุได้ อาจมีคำร้องที่ผูกอยู่" }
+    return { success: false, message: "ไม่สามารถลบพัสดุได้ อาจมีคำร้องที่ผูกอยู่" }
   }
 }

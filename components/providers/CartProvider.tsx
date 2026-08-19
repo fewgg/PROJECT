@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ProductCardProps } from "../ui-custom/ProductCard";
+import { toast } from "sonner";
 
 export interface CartItem extends ProductCardProps {
   requestQuantity: number;
@@ -36,6 +37,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return [...prev, { ...product, requestQuantity: 1 }];
     });
     setIsCartOpen(true); // Auto open cart to show feedback
+    toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
   const removeFromCart = (id: string) => {

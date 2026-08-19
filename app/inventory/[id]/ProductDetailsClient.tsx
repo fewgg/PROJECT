@@ -14,16 +14,16 @@ export default function ProductDetailsClient({ product }: { product: Material })
   // สร้างคำอธิบายจำลอง (Mockup Description) ตามหมวดหมู่
   const generateDescription = (category: string) => {
     switch (category) {
-      case "วัสดุคอมพิวเตอร์และไอที":
-        return "อุปกรณ์และวัสดุที่เกี่ยวข้องกับระบบคอมพิวเตอร์ เครือข่าย และไอที เหมาะสำหรับการใช้งานในห้องปฏิบัติการและสำนักงานทั่วไป ผ่านมาตรฐานความปลอดภัยและรองรับการใช้งานต่อเนื่อง";
-      case "วัสดุสำนักงาน":
-        return "วัสดุสิ้นเปลืองสำหรับสำนักงาน คุณภาพดี เหมาะสำหรับงานเอกสาร งานธุรการ และการเรียนการสอน ช่วยให้การจัดการงานต่างๆ เป็นไปอย่างราบรื่น";
-      case "วัสดุทำความสะอาด":
+      case "พัสดุคอมพิวเตอร์และไอที":
+        return "อุปกรณ์และพัสดุที่เกี่ยวข้องกับระบบคอมพิวเตอร์ เครือข่าย และไอที เหมาะสำหรับการใช้งานในห้องปฏิบัติการและสำนักงานทั่วไป ผ่านมาตรฐานความปลอดภัยและรองรับการใช้งานต่อเนื่อง";
+      case "พัสดุสำนักงาน":
+        return "พัสดุสิ้นเปลืองสำหรับสำนักงาน คุณภาพดี เหมาะสำหรับงานเอกสาร งานธุรการ และการเรียนการสอน ช่วยให้การจัดการงานต่างๆ เป็นไปอย่างราบรื่น";
+      case "พัสดุทำความสะอาด":
         return "น้ำยาและอุปกรณ์ทำความสะอาด เพื่อสุขอนามัยที่ดีในสถานที่ทำงานและห้องเรียน ปลอดภัยต่อผู้ใช้งานและเป็นมิตรกับสิ่งแวดล้อม";
-      case "วัสดุช่างและอุปกรณ์ทั่วไป":
+      case "พัสดุช่างและอุปกรณ์ทั่วไป":
         return "เครื่องมือช่างและอุปกรณ์สำหรับการบำรุงรักษาอาคารสถานที่ แข็งแรงทนทาน ได้มาตรฐานอุตสาหกรรม";
       default:
-        return "วัสดุและอุปกรณ์คุณภาพสูง สำหรับใช้งานภายในวิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร";
+        return "พัสดุและอุปกรณ์คุณภาพสูง สำหรับใช้งานภายในวิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร";
     }
   };
 
@@ -31,7 +31,7 @@ export default function ProductDetailsClient({ product }: { product: Material })
     <div className="w-full animate-in fade-in duration-500 py-6 md:py-10 px-4 md:px-0">
       <Link href="/inventory" className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 kanit-medium transition-colors mb-8 group">
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        กลับไปหน้าคลังวัสดุ
+        กลับไปหน้าคลังพัสดุ
       </Link>
 
       <div className="bg-white rounded-[32px] p-6 md:p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row gap-10">
@@ -51,17 +51,17 @@ export default function ProductDetailsClient({ product }: { product: Material })
             <div className="absolute top-4 right-4">
               {product.status === "AVAILABLE" && (
                 <Badge className="bg-emerald-500/90 text-white border-none shadow-md backdrop-blur-md px-3 py-1 text-sm kanit-medium">
-                  มีสินค้าพร้อมเบิก
+                  มีพัสดุพร้อมเบิก
                 </Badge>
               )}
               {product.status === "LOW_STOCK" && (
                 <Badge className="bg-amber-500/90 text-white border-none shadow-md backdrop-blur-md px-3 py-1 text-sm kanit-medium">
-                  สินค้าใกล้หมด
+                  พัสดุใกล้หมด
                 </Badge>
               )}
               {product.status === "OUT_OF_STOCK" && (
                 <Badge className="bg-rose-500/90 text-white border-none shadow-md backdrop-blur-md px-3 py-1 text-sm kanit-medium">
-                  สินค้าหมด
+                  พัสดุหมด
                 </Badge>
               )}
             </div>
@@ -78,7 +78,7 @@ export default function ProductDetailsClient({ product }: { product: Material })
           
           <h1 className="text-3xl md:text-4xl kanit-bold text-slate-900 mb-2">{product.name}</h1>
           <p className="text-slate-500 kanit-regular text-sm mb-8 flex items-center gap-2">
-            <Package className="w-4 h-4" /> รหัสวัสดุ: {product.id}
+            <Package className="w-4 h-4" /> รหัสพัสดุ: {product.id}
           </p>
 
           <div className="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">

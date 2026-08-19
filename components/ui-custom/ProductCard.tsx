@@ -38,7 +38,7 @@ export function ProductCard({ id, name, image, quantity, status, unit }: Product
         <div className="absolute top-3 right-3">
           {status === "AVAILABLE" && (
             <Badge className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-none shadow-sm backdrop-blur-md">
-              มีสินค้า
+              มีพัสดุ
             </Badge>
           )}
           {status === "LOW_STOCK" && (

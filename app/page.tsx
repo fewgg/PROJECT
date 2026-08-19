@@ -4,10 +4,12 @@ import { StatCards } from "@/components/ui-custom/StatCards"
 import { RecentActivity } from "@/components/ui-custom/RecentActivity"
 import { getDashboardStats, getRecentActivities } from "./actions/stats"
 import { getRecommendedMaterials } from "./actions/materials"
+import { checkOnboarding } from "@/lib/checkAuth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
+  await checkOnboarding();
   const [stats, activities, materials] = await Promise.all([
     getDashboardStats(),
     getRecentActivities(),
@@ -21,7 +23,7 @@ export default async function DashboardPage() {
       
       <div className="w-full mt-4 border-t border-slate-100 pt-8">
         <h2 className="text-2xl kanit-bold tracking-tight text-slate-900 mb-2">ภาพรวมระบบ</h2>
-        <p className="kanit-regular text-slate-500 mb-6">ข้อมูลสถิติการใช้งานและวัสดุคงคลัง</p>
+        <p className="kanit-regular text-slate-500 mb-6">ข้อมูลสถิติการใช้งานและพัสดุคงคลัง</p>
         <StatCards stats={stats} />
       </div>
 

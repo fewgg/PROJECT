@@ -59,15 +59,22 @@ export async function getMaterialById(id: string) {
 export async function addMaterial(data: Omit<Material, "id">) {
   try {
     // Generate a random ID (e.g. cus-123)
-    const id = `${data.category === 'วัสดุสำนักงาน' ? 'off' : 'item'}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    const id = `${data.category === 'พัสดุสำนักงาน' ? 'off' : 'item'}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
     await sql`
       INSERT INTO materials (id, name, image, quantity, status, unit, category)
-      VALUES (${id}, ${data.name}, ${data.image}, ${data.quantity}, ${data.status}, ${data.unit}, ${data.category})
+      VALUES (${id}, ${data.name}, ${data.image}, ${data.quantity}, 
+        CASE 
+          WHEN ${data.quantity} <= 0 THEN 'OUT_OF_STOCK'
+          WHEN ${data.quantity} <= 5 THEN 'LOW_STOCK'
+          ELSE 'AVAILABLE'
+        END, 
+        ${data.unit}, ${data.category})
     `;
     
     revalidatePath("/admin/materials");
     revalidatePath("/inventory");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error adding material:", error);
@@ -83,7 +90,11 @@ export async function updateMaterial(id: string, data: Partial<Material>) {
         name = ${data.name ?? sql`name`},
         image = ${data.image ?? sql`image`},
         quantity = ${data.quantity ?? sql`quantity`},
-        status = ${data.status ?? sql`status`},
+        status = CASE 
+                   WHEN (${data.quantity ?? sql`quantity`}) <= 0 THEN 'OUT_OF_STOCK'
+                   WHEN (${data.quantity ?? sql`quantity`}) <= 5 THEN 'LOW_STOCK'
+                   ELSE 'AVAILABLE'
+                 END,
         unit = ${data.unit ?? sql`unit`},
         category = ${data.category ?? sql`category`},
         updated_at = CURRENT_TIMESTAMP
@@ -92,6 +103,7 @@ export async function updateMaterial(id: string, data: Partial<Material>) {
     
     revalidatePath("/admin/materials");
     revalidatePath("/inventory");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error updating material:", error);
@@ -106,6 +118,7 @@ export async function deleteMaterial(id: string) {
     
     revalidatePath("/admin/materials");
     revalidatePath("/inventory");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting material:", error);

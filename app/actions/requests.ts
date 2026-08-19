@@ -14,6 +14,7 @@ export type Transaction = {
   quantity: number;
   status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
   remark: string | null;
+  department?: string | null;
   created_at: Date;
   updated_at: Date;
   // Joined fields
@@ -27,10 +28,14 @@ export async function createRequest(materialId: string, quantity: number, remark
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
+    
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const department = (user.publicMetadata?.department as string) || null;
 
     await sql`
-      INSERT INTO transactions (material_id, user_id, type, quantity, status, remark)
-      VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null})
+      INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
+      VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department})
     `;
     
     revalidatePath("/requests");
@@ -121,6 +126,7 @@ export async function updateRequestStatus(transactionId: string, newStatus: "APP
     revalidatePath("/admin");
     revalidatePath("/requests");
     revalidatePath("/inventory");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error updating request status:", error);

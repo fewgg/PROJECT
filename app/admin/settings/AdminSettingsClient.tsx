@@ -8,8 +8,8 @@ export default function AdminSettingsClient() {
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState({
     schoolName: "วิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร",
-    systemName: "ระบบบริหารคลังวัสดุ NMC",
-    contactEmail: "admin@nmc.ac.th",
+    systemName: "ระบบบริหารคลังพัสดุ ",
+    contactEmail: "admin@.ac.th",
     notifyOnNewRequest: true,
     notifyOnLowStock: true,
     autoApproveSmallRequests: false,
@@ -87,7 +87,7 @@ export default function AdminSettingsClient() {
             <label className="flex items-center justify-between p-4 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
               <div>
                 <p className="kanit-medium text-slate-800">แจ้งเตือนเมื่อมีคำร้องใหม่</p>
-                <p className="kanit-regular text-sm text-slate-500">รับอีเมลแจ้งเตือนเมื่อผู้ใช้งานส่งคำร้องขอเบิกวัสดุ</p>
+                <p className="kanit-regular text-sm text-slate-500">รับอีเมลแจ้งเตือนเมื่อผู้ใช้งานส่งคำร้องขอเบิกพัสดุ</p>
               </div>
               <input 
                 type="checkbox" 
@@ -98,8 +98,8 @@ export default function AdminSettingsClient() {
             </label>
             <label className="flex items-center justify-between p-4 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
               <div>
-                <p className="kanit-medium text-slate-800">แจ้งเตือนวัสดุใกล้หมดสต๊อก</p>
-                <p className="kanit-regular text-sm text-slate-500">ระบบจะแจ้งเตือนเมื่อวัสดุมีสถานะ "ใกล้หมด"</p>
+                <p className="kanit-medium text-slate-800">แจ้งเตือนพัสดุใกล้หมดสต๊อก</p>
+                <p className="kanit-regular text-sm text-slate-500">ระบบจะแจ้งเตือนเมื่อพัสดุมีสถานะ "ใกล้หมด"</p>
               </div>
               <input 
                 type="checkbox" 
@@ -123,7 +123,7 @@ export default function AdminSettingsClient() {
             <label className="flex items-center justify-between p-4 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
               <div>
                 <p className="kanit-medium text-slate-800">อนุมัติคำร้องอัตโนมัติ (จำนวนน้อย)</p>
-                <p className="kanit-regular text-sm text-slate-500">หากผู้ใช้งานขอเบิกวัสดุจำนวนไม่เกิน 1 ชิ้น จะทำการอนุมัติอัตโนมัติ</p>
+                <p className="kanit-regular text-sm text-slate-500">หากผู้ใช้งานขอเบิกพัสดุจำนวนไม่เกิน 1 ชิ้น จะทำการอนุมัติอัตโนมัติ</p>
               </div>
               <input 
                 type="checkbox" 

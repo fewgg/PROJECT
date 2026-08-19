@@ -1,5 +1,6 @@
 import sql from "@/lib/db";
 import { Package, AlertCircle, ClipboardList, Clock } from "lucide-react";
+import Link from "next/link";
 
 export default async function AdminDashboardPage() {
   // Fetch materials from database
@@ -15,7 +16,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl kanit-bold text-slate-900 tracking-tight">ภาพรวมระบบ (Dashboard)</h1>
-        <p className="text-slate-500 kanit-regular mt-1">สรุปข้อมูลสถานะคลังวัสดุและการเบิกจ่าย</p>
+        <p className="text-slate-500 kanit-regular mt-1">สรุปข้อมูลสถานะคลังพัสดุและการเบิกจ่าย</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -24,7 +25,7 @@ export default async function AdminDashboardPage() {
             <Package className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm kanit-medium text-slate-500">รายการวัสดุทั้งหมด</p>
+            <p className="text-sm kanit-medium text-slate-500">รายการพัสดุทั้งหมด</p>
             <h3 className="text-3xl kanit-bold text-slate-800 mt-1">{totalMaterials}</h3>
           </div>
         </div>
@@ -34,7 +35,7 @@ export default async function AdminDashboardPage() {
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm kanit-medium text-slate-500">วัสดุใกล้หมด / หมด</p>
+            <p className="text-sm kanit-medium text-slate-500">พัสดุใกล้หมด / หมด</p>
             <h3 className="text-3xl kanit-bold text-slate-800 mt-1">{lowStockMaterials}</h3>
           </div>
         </div>
@@ -54,7 +55,9 @@ export default async function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg kanit-semibold text-slate-800">คำร้องขอเบิกล่าสุด</h3>
-            <button className="text-sm text-blue-600 kanit-medium hover:underline">ดูทั้งหมด</button>
+            <Link href="/admin/requests">
+              <button className="text-sm text-blue-600 kanit-medium hover:underline cursor-pointer">ดูทั้งหมด</button>
+            </Link>
           </div>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -81,8 +84,10 @@ export default async function AdminDashboardPage() {
 
         <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg kanit-semibold text-slate-800">วัสดุที่ต้องเติมสต๊อกด่วน</h3>
-            <button className="text-sm text-blue-600 kanit-medium hover:underline">รับของเข้า</button>
+            <h3 className="text-lg kanit-semibold text-slate-800">พัสดุที่ต้องเติมสต๊อกด่วน</h3>
+            <Link href="/admin/stock-in">
+              <button className="text-sm text-blue-600 kanit-medium hover:underline cursor-pointer">รับของเข้า</button>
+            </Link>
           </div>
           <div className="space-y-4">
             {materials.filter(m => m.status === "OUT_OF_STOCK" || m.status === "LOW_STOCK").slice(0, 4).map((item) => (

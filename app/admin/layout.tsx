@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, ListTree, ClipboardCheck, ArrowDownToLine, Settings } from "lucide-react";
+import { LayoutDashboard, Package, ListTree, ClipboardCheck, ArrowDownToLine, Settings, MessageCircle } from "lucide-react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+
+import { AdminChatBadge } from "@/components/ui-custom/AdminChatBadge";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -13,10 +15,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const navItems = [
     { name: "แดชบอร์ด", href: "/admin", icon: LayoutDashboard },
-    { name: "จัดการวัสดุ", href: "/admin/materials", icon: Package },
+    { name: "จัดการพัสดุ", href: "/admin/materials", icon: Package },
     { name: "จัดการหมวดหมู่", href: "/admin/categories", icon: ListTree },
-    { name: "อนุมัติเบิกวัสดุ", href: "/admin/requests", icon: ClipboardCheck },
+    { name: "อนุมัติเบิกพัสดุ", href: "/admin/requests", icon: ClipboardCheck },
     { name: "รับของเข้าคลัง", href: "/admin/stock-in", icon: ArrowDownToLine },
+    { name: "ข้อความ", href: "/admin/chat", icon: MessageCircle },
   ];
 
   return (
@@ -30,9 +33,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <Link key={item.name} href={item.href}>
-              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl kanit-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl kanit-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors w-full">
                 <item.icon className="w-5 h-5" />
                 {item.name}
+                {item.name === "ข้อความ" && <AdminChatBadge />}
               </span>
             </Link>
           ))}

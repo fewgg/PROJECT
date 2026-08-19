@@ -81,8 +81,8 @@ export function InventoryManager({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl kanit-bold tracking-tight text-primary">จัดการคลังวัสดุ</h2>
-          <p className="kanit-regular text-muted-foreground mt-1">เพิ่ม ลบ หรือแก้ไขข้อมูลวัสดุในระบบ</p>
+          <h2 className="text-3xl kanit-bold tracking-tight text-primary">จัดการคลังพัสดุ</h2>
+          <p className="kanit-regular text-muted-foreground mt-1">เพิ่ม ลบ หรือแก้ไขข้อมูลพัสดุในระบบ</p>
         </div>
         <Button 
           onClick={() => setIsAddOpen(true)}
@@ -97,8 +97,8 @@ export function InventoryManager({
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow>
-              <TableHead className="kanit-semibold pl-6">รหัสวัสดุ</TableHead>
-              <TableHead className="kanit-semibold">ชื่อวัสดุ</TableHead>
+              <TableHead className="kanit-semibold pl-6">รหัสพัสดุ</TableHead>
+              <TableHead className="kanit-semibold">ชื่อพัสดุ</TableHead>
               <TableHead className="kanit-semibold">หมวดหมู่</TableHead>
               <TableHead className="kanit-semibold text-right">คงเหลือ</TableHead>
               <TableHead className="kanit-semibold">หน่วยนับ</TableHead>
@@ -121,7 +121,7 @@ export function InventoryManager({
                     variant={item.balance > 20 ? "default" : item.balance > 0 ? "secondary" : "destructive"}
                     className="kanit-regular px-2 py-0.5 rounded-full"
                   >
-                    {item.balance > 20 ? "มีสินค้า" : item.balance > 0 ? "ใกล้หมด" : "หมด"}
+                    {item.balance > 20 ? "มีพัสดุ" : item.balance > 0 ? "ใกล้หมด" : "หมด"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right pr-6">
@@ -149,7 +149,7 @@ export function InventoryManager({
             {initialMaterials.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 kanit-regular text-muted-foreground">
-                  ไม่พบข้อมูลวัสดุ
+                  ไม่พบข้อมูลพัสดุ
                 </TableCell>
               </TableRow>
             )}
@@ -162,11 +162,11 @@ export function InventoryManager({
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={handleAdd}>
             <DialogHeader>
-              <DialogTitle className="kanit-bold text-xl text-primary">เพิ่มวัสดุใหม่</DialogTitle>
+              <DialogTitle className="kanit-bold text-xl text-primary">เพิ่มพัสดุใหม่</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4 kanit-regular">
               <div className="space-y-2">
-                <Label htmlFor="name" className="kanit-medium">ชื่อวัสดุ</Label>
+                <Label htmlFor="name" className="kanit-medium">ชื่อพัสดุ</Label>
                 <Input id="name" name="name" required />
               </div>
               <div className="space-y-2">
@@ -211,11 +211,11 @@ export function InventoryManager({
           {editItem && (
             <form onSubmit={handleEdit}>
               <DialogHeader>
-                <DialogTitle className="kanit-bold text-xl text-primary">แก้ไขข้อมูลวัสดุ</DialogTitle>
+                <DialogTitle className="kanit-bold text-xl text-primary">แก้ไขข้อมูลพัสดุ</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4 kanit-regular">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-name" className="kanit-medium">ชื่อวัสดุ</Label>
+                  <Label htmlFor="edit-name" className="kanit-medium">ชื่อพัสดุ</Label>
                   <Input id="edit-name" name="name" required defaultValue={editItem.name} />
                 </div>
                 <div className="space-y-2">
@@ -262,7 +262,7 @@ export function InventoryManager({
             <DialogTitle className="kanit-bold text-xl text-destructive">ยืนยันการลบข้อมูล</DialogTitle>
           </DialogHeader>
           <div className="py-4 kanit-regular text-muted-foreground">
-            คุณแน่ใจหรือไม่ว่าต้องการลบวัสดุนี้? ข้อมูลนี้จะไม่สามารถกู้คืนได้
+            คุณแน่ใจหรือไม่ว่าต้องการลบพัสดุนี้? ข้อมูลนี้จะไม่สามารถกู้คืนได้
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteId(null)} className="kanit-medium rounded-full">

@@ -15,7 +15,7 @@ interface StatCardsProps {
 export function StatCards({ stats }: StatCardsProps) {
   const statItems = [
     {
-      title: "รายการวัสดุทั้งหมด",
+      title: "รายการพัสดุทั้งหมด",
       value: stats.totalMaterials.toLocaleString(),
       description: "รายการ",
       icon: Package,
@@ -24,7 +24,7 @@ export function StatCards({ stats }: StatCardsProps) {
       textColor: "text-blue-600",
     },
     {
-      title: "วัสดุใกล้หมด",
+      title: "พัสดุใกล้หมด",
       value: stats.lowStock.toLocaleString(),
       description: "รายการ",
       icon: AlertCircle,

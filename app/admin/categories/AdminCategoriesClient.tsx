@@ -54,7 +54,7 @@ export default function AdminCategoriesClient({ initialCategories }: { initialCa
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("ยืนยันการลบหมวดหมู่นี้? (หากมีวัสดุในหมวดหมู่นี้ อาจทำให้ข้อมูลแสดงผลผิดพลาด)")) {
+    if (confirm("ยืนยันการลบหมวดหมู่นี้? (หากมีพัสดุในหมวดหมู่นี้ อาจทำให้ข้อมูลแสดงผลผิดพลาด)")) {
       const res = await deleteCategory(id);
       if (res.success) {
         setCategories(categories.filter(c => c.id !== id));

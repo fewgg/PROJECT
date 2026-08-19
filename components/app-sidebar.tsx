@@ -12,7 +12,7 @@ import {
 
 const items = [
   { title: "แผงควบคุม", url: "/", icon: LayoutDashboard },
-  { title: "คลังวัสดุ", url: "/inventory", icon: Package },
+  { title: "คลังพัสดุ", url: "/inventory", icon: Package },
   { title: "คำร้องขอเบิก", url: "/requests", icon: Inbox },
   { title: "ตั้งค่าระบบ", url: "/settings", icon: Settings },
 ]
@@ -23,7 +23,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-lg kanit-bold tracking-tight text-primary mt-2 mb-4 px-4">
-            ระบบคลังวัสดุ NMC
+            ระบบคลังพัสดุ
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

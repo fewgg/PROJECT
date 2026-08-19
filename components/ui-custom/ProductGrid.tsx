@@ -25,8 +25,8 @@ export function ProductGrid({ materials }: { materials: Material[] }) {
     <section className="w-full py-6">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-2xl kanit-bold tracking-tight text-slate-900">วัสดุแนะนำ</h2>
-          <p className="kanit-regular text-slate-500 mt-1">รายการวัสดุที่มีการเบิกใช้งานบ่อย</p>
+          <h2 className="text-2xl kanit-bold tracking-tight text-slate-900">พัสดุแนะนำ</h2>
+          <p className="kanit-regular text-slate-500 mt-1">รายการพัสดุที่มีการเบิกใช้งานบ่อย</p>
         </div>
         <Link href="/inventory">
           <button className="text-blue-600 kanit-medium text-sm hover:underline">ดูทั้งหมด</button>

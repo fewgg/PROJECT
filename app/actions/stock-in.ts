@@ -93,6 +93,7 @@ export async function stockInMaterial(materialId: string, quantityToAdd: number,
     revalidatePath("/admin/materials");
     revalidatePath("/admin");
     revalidatePath("/inventory");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error during stock in:", error);

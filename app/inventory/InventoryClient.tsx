@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { ProductCard, ProductCardProps } from "@/components/ui-custom/ProductCard";
 import { Material } from "@/app/actions/materials";
 
-const CATEGORIES = ["ทั้งหมด", "วัสดุคอมพิวเตอร์และไอที", "วัสดุสำนักงาน", "วัสดุช่างและอุปกรณ์ทั่วไป", "วัสดุทำความสะอาด"];
+const CATEGORIES = ["ทั้งหมด", "พัสดุคอมพิวเตอร์และไอที", "พัสดุสำนักงาน", "พัสดุช่างและอุปกรณ์ทั่วไป", "พัสดุทำความสะอาด"];
 
 export default function InventoryClient({ initialData }: { initialData: Material[] }) {
   const searchParams = useSearchParams();
@@ -16,11 +16,21 @@ export default function InventoryClient({ initialData }: { initialData: Material
   
   const [searchQuery, setSearchQuery] = useState(defaultQuery);
   const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["AVAILABLE", "LOW_STOCK"]);
+
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses((prev) => 
+      prev.includes(status) 
+        ? prev.filter((s) => s !== status) 
+        : [...prev, status]
+    );
+  };
 
   const filteredData = initialData.filter((item) => {
     const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchCategory = selectedCategory === "ทั้งหมด" || item.category === selectedCategory;
-    return matchSearch && matchCategory;
+    const matchStatus = selectedStatuses.includes(item.status);
+    return matchSearch && matchCategory && matchStatus;
   });
 
   return (
@@ -30,7 +40,7 @@ export default function InventoryClient({ initialData }: { initialData: Material
       <aside className="w-full md:w-64 shrink-0 space-y-8">
         <div>
           <div className="flex items-center gap-2 mb-4 kanit-semibold text-slate-800">
-            <Filter className="w-4 h-4" /> หมวดหมู่สินค้า
+            <Filter className="w-4 h-4" /> หมวดหมู่พัสดุ
           </div>
           <div className="flex flex-col gap-2">
             {CATEGORIES.map((cat) => (
@@ -51,19 +61,34 @@ export default function InventoryClient({ initialData }: { initialData: Material
 
         <div>
           <div className="flex items-center gap-2 mb-4 kanit-semibold text-slate-800">
-            <SlidersHorizontal className="w-4 h-4" /> สถานะสินค้า
+            <SlidersHorizontal className="w-4 h-4" /> สถานะพัสดุ
           </div>
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600" defaultChecked />
-              <span className="kanit-regular text-sm text-slate-600 group-hover:text-slate-900 transition-colors">มีสินค้า (Available)</span>
+              <input 
+                type="checkbox" 
+                checked={selectedStatuses.includes("AVAILABLE")}
+                onChange={() => toggleStatus("AVAILABLE")}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600" 
+              />
+              <span className="kanit-regular text-sm text-slate-600 group-hover:text-slate-900 transition-colors">มีพัสดุ (Available)</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500" defaultChecked />
+              <input 
+                type="checkbox" 
+                checked={selectedStatuses.includes("LOW_STOCK")}
+                onChange={() => toggleStatus("LOW_STOCK")}
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500" 
+              />
               <span className="kanit-regular text-sm text-slate-600 group-hover:text-slate-900 transition-colors">ใกล้หมด (Low Stock)</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-rose-500 focus:ring-rose-500" />
+              <input 
+                type="checkbox" 
+                checked={selectedStatuses.includes("OUT_OF_STOCK")}
+                onChange={() => toggleStatus("OUT_OF_STOCK")}
+                className="w-4 h-4 rounded border-slate-300 text-rose-500 focus:ring-rose-500" 
+              />
               <span className="kanit-regular text-sm text-slate-600 group-hover:text-slate-900 transition-colors">หมด (Out of Stock)</span>
             </label>
           </div>
@@ -78,7 +103,7 @@ export default function InventoryClient({ initialData }: { initialData: Material
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input 
               type="text" 
-              placeholder="ค้นหารายการวัสดุ..." 
+              placeholder="ค้นหารายการพัสดุ..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-slate-50 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl kanit-regular text-sm transition-all outline-none"
@@ -108,7 +133,7 @@ export default function InventoryClient({ initialData }: { initialData: Material
           {filteredData.length === 0 && (
             <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-400">
               <Search className="w-12 h-12 mb-4 opacity-50" />
-              <p className="kanit-medium text-lg">ไม่พบรายการวัสดุ</p>
+              <p className="kanit-medium text-lg">ไม่พบรายการพัสดุ</p>
               <p className="kanit-regular text-sm mt-1">ลองเปลี่ยนคำค้นหาหรือตัวกรองใหม่</p>
             </div>
           )}

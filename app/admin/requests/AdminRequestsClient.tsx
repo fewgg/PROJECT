@@ -51,12 +51,13 @@ export default function AdminRequestsClient({ initialRequests }: { initialReques
     }
     
     // สร้าง Header ของ CSV
-    const headers = ["เลขที่คำร้อง", "ชื่อผู้เบิก", "รหัสวัสดุ", "ชื่อวัสดุ", "จำนวนที่เบิก", "สถานะ", "วันที่", "หมายเหตุ"];
+    const headers = ["เลขที่คำร้อง", "ชื่อผู้เบิก", "สาขาวิชา", "รหัสพัสดุ", "ชื่อพัสดุ", "จำนวนที่เบิก", "สถานะ", "วันที่", "หมายเหตุ"];
     
     // แปลงข้อมูลเป็น array ของ string
     const csvRows = filteredRequests.map(req => [
       req.id,
       `"${req.user_name || ''}"`,
+      `"${req.department || ''}"`,
       req.material_id,
       `"${req.material_name || ''}"`,
       req.quantity,
@@ -89,7 +90,7 @@ export default function AdminRequestsClient({ initialRequests }: { initialReques
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl kanit-bold text-slate-900 tracking-tight">อนุมัติเบิกวัสดุ</h1>
+          <h1 className="text-2xl kanit-bold text-slate-900 tracking-tight">อนุมัติเบิกพัสดุ</h1>
           <p className="text-slate-500 kanit-regular mt-1 text-sm">ตรวจสอบและอนุมัติคำร้องขอเบิกพัสดุจากผู้ใช้งาน</p>
         </div>
         <button 
@@ -141,6 +142,7 @@ export default function AdminRequestsClient({ initialRequests }: { initialReques
                       <div>
                         <p className="kanit-medium text-slate-800">{req.material_name}</p>
                         <p className="text-xs text-slate-500">จำนวน: {req.quantity}</p>
+                        {req.department && <p className="text-xs text-blue-600 kanit-medium">สาขา: {req.department}</p>}
                       </div>
                     </div>
                     {req.remark && <p className="text-xs text-slate-400 mt-1 italic">"{req.remark}"</p>}

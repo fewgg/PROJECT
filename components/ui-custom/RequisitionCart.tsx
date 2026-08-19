@@ -27,7 +27,7 @@ export function RequisitionCart() {
     }
     
     if (allSuccess) {
-      toast.success("ส่งคำขอเบิกวัสดุเรียบร้อยแล้ว");
+      toast.success("ส่งคำขอเบิกพัสดุเรียบร้อยแล้ว");
       clearCart();
       setIsCartOpen(false);
       setRemark("");
@@ -62,7 +62,7 @@ export function RequisitionCart() {
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                   <ShoppingBag className="w-5 h-5" />
                 </div>
-                <h2 className="text-xl kanit-semibold text-slate-800">รายการเบิกวัสดุ</h2>
+                <h2 className="text-xl kanit-semibold text-slate-800">รายการเบิกพัสดุ</h2>
                 {cartItems.length > 0 && (
                   <span className="bg-blue-100 text-blue-700 text-xs kanit-medium px-2.5 py-0.5 rounded-full">
                     {cartItems.length} รายการ
@@ -82,12 +82,12 @@ export function RequisitionCart() {
               {cartItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
                   <ShoppingBag className="w-16 h-16 text-slate-200" />
-                  <p className="kanit-regular">ยังไม่มีรายการวัสดุในตะกร้า</p>
+                  <p className="kanit-regular">ยังไม่มีรายการพัสดุในตะกร้า</p>
                   <button 
                     onClick={() => setIsCartOpen(false)}
                     className="text-blue-600 kanit-medium hover:underline"
                   >
-                    เลือกดูวัสดุ
+                    เลือกดูพัสดุ
                   </button>
                 </div>
               ) : (
@@ -156,7 +156,7 @@ export function RequisitionCart() {
                   />
                 </div>
                 <div className="flex justify-between items-center mb-4 kanit-medium">
-                  <span className="text-slate-500">รวมจำนวนวัสดุที่ขอเบิก</span>
+                  <span className="text-slate-500">รวมจำนวนพัสดุที่ขอเบิก</span>
                   <span className="text-xl text-slate-800">{totalItems} <span className="text-sm font-normal text-slate-500">ชิ้น</span></span>
                 </div>
                 <div className="flex gap-3">

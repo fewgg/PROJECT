@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import { getMaterials } from "@/app/actions/materials";
 import InventoryClient from "./InventoryClient";
+import { checkOnboarding } from "@/lib/checkAuth";
 
 // Revalidate this page every 60 seconds or when revalidatePath is called
 export const revalidate = 60;
 
 export default async function InventoryPage() {
+  await checkOnboarding();
   const materials = await getMaterials();
   
   return (

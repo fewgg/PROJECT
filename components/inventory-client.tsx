@@ -61,9 +61,9 @@ export function InventoryClient({ initialData }: { initialData: Material[] }) {
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl kanit-semibold">รายการวัสดุคงคลัง</h3>
+        <h3 className="text-xl kanit-semibold">รายการพัสดุคงคลัง</h3>
         <Input 
-          placeholder="ค้นหาวัสดุ..." 
+          placeholder="ค้นหาพัสดุ..." 
           className="w-[300px] kanit-regular rounded-full bg-white shadow-sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -80,8 +80,8 @@ export function InventoryClient({ initialData }: { initialData: Material[] }) {
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
-              <TableHead className="kanit-semibold">รหัสวัสดุ</TableHead>
-              <TableHead className="kanit-semibold">ชื่อวัสดุ</TableHead>
+              <TableHead className="kanit-semibold">รหัสพัสดุ</TableHead>
+              <TableHead className="kanit-semibold">ชื่อพัสดุ</TableHead>
               <TableHead className="kanit-semibold">หมวดหมู่</TableHead>
               <TableHead className="kanit-semibold text-right">คงเหลือ</TableHead>
               <TableHead className="kanit-semibold">หน่วยนับ</TableHead>
@@ -110,7 +110,7 @@ export function InventoryClient({ initialData }: { initialData: Material[] }) {
                 <TableCell className="kanit-regular text-muted-foreground">{item.unit}</TableCell>
                 <TableCell>
                   <Badge 
-                    variant={item.status === "มีสินค้า" ? "default" : item.status === "ใกล้หมด" ? "secondary" : "destructive"}
+                    variant={item.status === "มีพัสดุ" ? "default" : item.status === "ใกล้หมด" ? "secondary" : "destructive"}
                     className="kanit-regular px-2 py-0.5 rounded-full"
                   >
                     {item.status}

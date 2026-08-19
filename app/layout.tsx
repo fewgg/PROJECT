@@ -4,12 +4,15 @@ import { ClerkProvider, SignInButton, UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { shadcn } from "@clerk/ui/themes";
+import { thTH } from "@clerk/localizations";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/components/providers/CartProvider";
 import { CartButton } from "@/components/ui-custom/CartButton";
 import { RequisitionCart } from "@/components/ui-custom/RequisitionCart";
+import { NotificationBell } from "@/components/ui-custom/NotificationBell";
+import { FloatingChat } from "@/components/ui-custom/FloatingChat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +25,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NMC Inventory System",
+  title: "Inventory System",
   description: "Enterprise Material Requisition System",
 };
 
@@ -37,7 +40,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} h-full antialiased bg-[#f8fafc]`}>
-        <ClerkProvider appearance={{ theme: shadcn }}>
+        <ClerkProvider localization={thTH} appearance={{ theme: shadcn }}>
           <TooltipProvider>
             <CartProvider>
               <div className="flex flex-col min-h-screen">
@@ -48,14 +51,14 @@ export default async function RootLayout({
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-transparent shadow-sm group-hover:scale-105 transition-transform">
                         <img src="/logo.png" alt="NMC Logo" className="w-full h-full object-contain" />
                       </div>
-                      <div className="kanit-semibold text-xl tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors hidden sm:block">ระบบคลังวัสดุ NMC</div>
+                      <div className="kanit-semibold text-xl tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors hidden sm:block">ระบบคลังพัสดุ</div>
                     </Link>
                   </div>
                   
                   {/* Navigation Links */}
                   <div className="hidden md:flex items-center gap-1 mx-6">
                     <Link href="/inventory" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
-                      หน้าหลัก (เบิกวัสดุ)
+                      หน้าหลัก (เบิกพัสดุ)
                     </Link>
                     <Link href="/requests" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
                       ประวัติการเบิก
@@ -72,10 +75,7 @@ export default async function RootLayout({
                     )}
                     <CartButton />
                     
-                    <button className="relative p-2.5 text-slate-500 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100 border border-transparent">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                      <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500"></span>
-                    </button>
+                    <NotificationBell />
                     
                     {!user && (
                       <SignInButton mode="modal">
@@ -85,7 +85,11 @@ export default async function RootLayout({
                       </SignInButton>
                     )}
                     {user && (
-                      <UserButton appearance={{ elements: { userButtonAvatarBox: "h-9 w-9" } }} />
+                      <UserButton 
+                        userProfileMode="navigation"
+                        userProfileUrl="/profile"
+                        appearance={{ elements: { userButtonAvatarBox: "h-9 w-9" } }} 
+                      />
                     )}
                   </div>
                 </header>
@@ -96,13 +100,14 @@ export default async function RootLayout({
 
                 <footer className="w-full border-t bg-white py-8 mt-auto">
                   <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex justify-between items-center text-slate-500 text-sm kanit-regular">
-                    <p>&copy; 2026 ระบบคลังวัสดุ NMC. All rights reserved.</p>
+                    <p>&copy; 2026 ระบบคลังพัสดุ. All rights reserved.</p>
                     <div className="flex gap-4">
                       <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
                       <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
                     </div>
                   </div>
                 </footer>
+                <FloatingChat />
               </div>
               <RequisitionCart />
             </CartProvider>

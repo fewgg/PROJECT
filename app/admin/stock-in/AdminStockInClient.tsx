@@ -36,14 +36,14 @@ export default function AdminStockInClient({ materials, recentStockIns }: { mate
     <div className="space-y-6 animate-in fade-in duration-500 max-w-3xl">
       <div>
         <h1 className="text-2xl kanit-bold text-slate-900 tracking-tight">รับของเข้าคลัง (Stock In)</h1>
-        <p className="text-slate-500 kanit-regular mt-1 text-sm">บันทึกการรับวัสดุใหม่เข้าสู่คลัง</p>
+        <p className="text-slate-500 kanit-regular mt-1 text-sm">บันทึกการรับพัสดุใหม่เข้าสู่คลัง</p>
       </div>
 
       <div className="bg-white p-6 md:p-8 rounded-[24px] border border-slate-100 shadow-sm">
         <form onSubmit={handleSave} className="space-y-6">
           
           <div className="space-y-2">
-            <label className="kanit-medium text-slate-700 text-sm">ค้นหาและเลือกวัสดุ</label>
+            <label className="kanit-medium text-slate-700 text-sm">ค้นหาและเลือกพัสดุ</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <select 
@@ -52,7 +52,7 @@ export default function AdminStockInClient({ materials, recentStockIns }: { mate
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl kanit-regular text-sm transition-all outline-none appearance-none"
                 required
               >
-                <option value="" disabled>-- กรุณาเลือกวัสดุ --</option>
+                <option value="" disabled>-- กรุณาเลือกพัสดุ --</option>
                 {materials.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name} (คงเหลือ: {item.quantity} {item.unit})
