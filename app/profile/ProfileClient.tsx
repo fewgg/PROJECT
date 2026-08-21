@@ -9,9 +9,9 @@ import ProfileDepartmentClient from "./ProfileDepartmentClient";
 export default function ProfileClient({ department }: { department: string }) {
   return (
     <>
-      {/* //********************************// */}
-      {/* // Lightbox Modal ดูรูปโปรไฟล์ขนาดเต็ม */}
-      {/* //********************************// */}
+      {/* ******************************** */}
+      {/* Lightbox Modal ดูรูปโปรไฟล์ขนาดเต็ม */}
+      {/* ******************************** */}
       <AvatarPreviewModal />
 
       <style dangerouslySetInnerHTML={{ __html: `
