@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import Cropper from "react-easy-crop";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { Camera, Loader2, X, Check } from "lucide-react";
+import { Camera, Loader2, X, Check, ZoomIn } from "lucide-react";
 import getCroppedImg from "@/lib/cropImage";
 
 export function ProfileImageUpload() {
