@@ -134,7 +134,9 @@ export async function updateRequestStatus(transactionId: string, newStatus: "APP
   }
 }
 
-// Get requests for a specific user
+//********************************//
+// ดึงข้อมูลรายการคำร้องของตัวผู้ใช้เอง (Get User Requests)
+//********************************//
 export async function getUserRequests() {
   try {
     const { userId } = await auth();
@@ -147,7 +149,20 @@ export async function getUserRequests() {
       WHERE t.user_id = ${userId} AND t.type = 'OUTBOUND'
       ORDER BY t.created_at DESC
     `;
-    return transactions;
+    return transactions.map(t => ({
+      id: String(t.id),
+      material_id: String(t.material_id),
+      user_id: String(t.user_id),
+      type: t.type,
+      quantity: Number(t.quantity),
+      status: t.status,
+      remark: t.remark ? String(t.remark) : null,
+      department: t.department ? String(t.department) : null,
+      created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
+      updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
+      material_name: String(t.material_name || ''),
+      material_image: String(t.material_image || '')
+    }));
   } catch (error) {
     console.error("Error fetching user requests:", error);
     return [];
