@@ -4,28 +4,42 @@ import postgres from "postgres";
 import { revalidatePath } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+//********************************//
+// การเชื่อมต่อฐานข้อมูล (Database Connection)
+//********************************//
 const sql = postgres(process.env.DATABASE_URL as string, { ssl: "require" });
 
+//********************************//
+// Type ของหมวดหมู่พัสดุ (Category Model)
+//********************************//
 export type Category = {
   id: string;
   name: string;
-  created_at: Date;
+  created_at?: Date | string;
 };
 
-// GET all categories
-export async function getCategories() {
+//********************************//
+// ดึงรายการหมวดหมู่ทั้งหมด (Get All Categories)
+//********************************//
+export async function getCategories(): Promise<Category[]> {
   try {
     const categories = await sql<Category[]>`
-      SELECT * FROM categories ORDER BY name ASC
+      SELECT id, name, created_at FROM categories ORDER BY name ASC
     `;
-    return categories;
+    return categories.map(c => ({
+      id: String(c.id),
+      name: String(c.name),
+      created_at: c.created_at ? new Date(c.created_at).toISOString() : undefined
+    }));
   } catch (error) {
     console.error("Error fetching categories:", error);
     return [];
   }
 }
 
-// ADD a new category (admin)
+//********************************//
+// เพิ่มหมวดหมู่พัสดุใหม่ (Add Category - Admin)
+//********************************//
 export async function addCategory(name: string) {
   try {
     const { userId } = await auth();
@@ -53,7 +67,9 @@ export async function addCategory(name: string) {
   }
 }
 
-// UPDATE a category (admin)
+//********************************//
+// แก้ไขหมวดหมู่พัสดุ (Update Category - Admin)
+//********************************//
 export async function updateCategory(id: string, name: string) {
   try {
     const { userId } = await auth();
@@ -89,7 +105,9 @@ export async function updateCategory(id: string, name: string) {
   }
 }
 
-// DELETE a category (admin)
+//********************************//
+// ลบหมวดหมู่พัสดุ (Delete Category - Admin)
+//********************************//
 export async function deleteCategory(id: string) {
   try {
     const { userId } = await auth();

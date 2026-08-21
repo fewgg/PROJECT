@@ -1,34 +1,70 @@
+//********************************//
+// หน้าจัดการพัสดุ (Admin Materials Client)
+//********************************//
 "use client";
 
 import { useState } from "react";
 import { Search, Plus, Edit2, Trash2, X, Loader2, Download } from "lucide-react";
 import { Material, addMaterial, updateMaterial, deleteMaterial } from "@/app/actions/materials";
+import { Category } from "@/app/actions/categories";
 import { toast } from "sonner";
 
-export default function AdminMaterialsClient({ initialData }: { initialData: Material[] }) {
+//********************************//
+// หมวดหมู่พัสดุเริ่มต้น
+//********************************//
+const DEFAULT_CATEGORIES = ["พัสดุคอมพิวเตอร์และไอที", "พัสดุสำนักงาน", "พัสดุช่างและอุปกรณ์ทั่วไป", "พัสดุทำความสะอาด"];
+
+export default function AdminMaterialsClient({ 
+  initialData, 
+  categories = [] 
+}: { 
+  initialData: Material[]; 
+  categories?: Category[]; 
+}) {
+  //********************************//
+  // State ข้อมูลและการทำงาน
+  //********************************//
   const [materials, setMaterials] = useState<Material[]>(initialData);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  //********************************//
+  // ดึงรายการหมวดหมู่ทั้งหมดสำหรับให้เลือก
+  //********************************//
+  const availableCategories = Array.from(new Set([
+    ...categories.map(c => c.name),
+    ...DEFAULT_CATEGORIES,
+    ...materials.map(m => m.category).filter(Boolean)
+  ]));
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Material>>({
-    name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: "พัสดุคอมพิวเตอร์และไอที"
+    name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: availableCategories[0] || "พัสดุคอมพิวเตอร์และไอที"
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  //********************************//
+  // กรองรายการพัสดุตามคำค้นหา
+  //********************************//
   const filteredMaterials = materials.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (m.category && m.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  //********************************//
+  // เปิด Modal เพิ่มพัสดุใหม่
+  //********************************//
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: "พัสดุคอมพิวเตอร์และไอที" });
+    setFormData({ name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: availableCategories[0] || "พัสดุคอมพิวเตอร์และไอที" });
     setSelectedFile(null);
     setIsModalOpen(true);
   };
 
+  //********************************//
+  // เปิด Modal แก้ไขพัสดุ
+  //********************************//
   const openEditModal = (item: Material) => {
     setEditingId(item.id);
     setFormData(item);
@@ -36,6 +72,9 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
     setIsModalOpen(true);
   };
 
+  //********************************//
+  // บันทึกข้อมูลเพิ่ม/แก้ไขพัสดุ
+  //********************************//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -94,6 +133,9 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
     setIsSubmitting(false);
   };
 
+  //********************************//
+  // ลบพัสดุ
+  //********************************//
   const handleDelete = async (id: string) => {
     if (confirm("ยืนยันการลบพัสดุรายการนี้?")) {
       const res = await deleteMaterial(id);
@@ -106,6 +148,9 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
     }
   };
 
+  //********************************//
+  // ส่งออกข้อมูลพัสดุเป็นไฟล์ CSV
+  //********************************//
   const exportToCSV = () => {
     if (filteredMaterials.length === 0) {
       toast.error("ไม่มีข้อมูลสำหรับส่งออก");
@@ -143,6 +188,9 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* ******************************** */}
+      {/* ส่วนหัวและการจัดการ (Header Actions) */}
+      {/* ******************************** */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl kanit-bold text-slate-900 tracking-tight">จัดการพัสดุ</h1>
@@ -162,6 +210,9 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
         </div>
       </div>
 
+      {/* ******************************** */}
+      {/* ตารางแสดงรายการพัสดุทั้งหมด       */}
+      {/* ******************************** */}
       <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50/50">
           <div className="relative max-w-md">
@@ -243,7 +294,9 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* ******************************** */}
+      {/* Modal เพิ่ม / แก้ไขพัสดุ (Add/Edit Modal) */}
+      {/* ******************************** */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl overflow-hidden">
@@ -264,10 +317,11 @@ export default function AdminMaterialsClient({ initialData }: { initialData: Mat
                 <div>
                   <label className="block text-sm kanit-medium text-slate-700 mb-1">หมวดหมู่</label>
                   <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                    <option value="พัสดุคอมพิวเตอร์และไอที">ไอที</option>
-                    <option value="พัสดุสำนักงาน">สำนักงาน</option>
-                    <option value="พัสดุช่างและอุปกรณ์ทั่วไป">ช่างและอุปกรณ์</option>
-                    <option value="พัสดุทำความสะอาด">ทำความสะอาด</option>
+                    {availableCategories.map((catName) => (
+                      <option key={catName} value={catName}>
+                        {catName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

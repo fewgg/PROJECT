@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getMaterials } from "@/app/actions/materials";
+import { getCategories } from "@/app/actions/categories";
 import InventoryClient from "./InventoryClient";
 import { checkOnboarding } from "@/lib/checkAuth";
 
@@ -8,11 +9,17 @@ export const revalidate = 60;
 
 export default async function InventoryPage() {
   await checkOnboarding();
-  const materials = await getMaterials();
+  const [rawMaterials, rawCategories] = await Promise.all([
+    getMaterials(),
+    getCategories()
+  ]);
   
+  const materials = JSON.parse(JSON.stringify(rawMaterials));
+  const categories = JSON.parse(JSON.stringify(rawCategories));
+
   return (
     <Suspense fallback={<div className="flex w-full h-full items-center justify-center p-20"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>}>
-      <InventoryClient initialData={materials} />
+      <InventoryClient initialData={materials} categories={categories} />
     </Suspense>
   );
 }

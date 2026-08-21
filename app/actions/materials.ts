@@ -3,9 +3,14 @@
 import postgres from "postgres";
 import { revalidatePath } from "next/cache";
 
-// Connect to Database using direct connection
+//********************************//
+// การเชื่อมต่อฐานข้อมูล (Database Connection)
+//********************************//
 const sql = postgres(process.env.DATABASE_URL as string, { ssl: "require" });
 
+//********************************//
+// Type ของข้อมูลพัสดุ (Material Model)
+//********************************//
 export type Material = {
   id: string;
   name: string;
@@ -16,20 +21,32 @@ export type Material = {
   category: string;
 };
 
-// GET all materials
+//********************************//
+// ดึงรายการพัสดุทั้งหมด (Get All Materials)
+//********************************//
 export async function getMaterials() {
   try {
     const materials = await sql<Material[]>`
       SELECT * FROM materials ORDER BY created_at DESC
     `;
-    return materials;
+    return materials.map(m => ({
+      id: String(m.id),
+      name: String(m.name || ''),
+      image: String(m.image || ''),
+      quantity: Number(m.quantity || 0),
+      status: String(m.status || ''),
+      unit: String(m.unit || ''),
+      category: String(m.category || '')
+    }));
   } catch (error) {
     console.error("Error fetching materials:", error);
     return [];
   }
 }
 
-// GET recommended materials (recently updated/most active)
+//********************************//
+// ดึงพัสดุแนะนำ (Get Recommended Materials)
+//********************************//
 export async function getRecommendedMaterials() {
   try {
     const materials = await sql<Material[]>`
@@ -42,7 +59,9 @@ export async function getRecommendedMaterials() {
   }
 }
 
-// GET a single material by ID
+//********************************//
+// ดึงข้อมูลพัสดุตาม ID (Get Material By ID)
+//********************************//
 export async function getMaterialById(id: string) {
   try {
     const materials = await sql<Material[]>`
@@ -55,7 +74,9 @@ export async function getMaterialById(id: string) {
   }
 }
 
-// ADD a new material
+//********************************//
+// เพิ่มพัสดุใหม่ (Add Material)
+//********************************//
 export async function addMaterial(data: Omit<Material, "id">) {
   try {
     // Generate a random ID (e.g. cus-123)
@@ -82,7 +103,9 @@ export async function addMaterial(data: Omit<Material, "id">) {
   }
 }
 
-// UPDATE a material
+//********************************//
+// แก้ไขพัสดุ (Update Material)
+//********************************//
 export async function updateMaterial(id: string, data: Partial<Material>) {
   try {
     await sql`
@@ -111,7 +134,9 @@ export async function updateMaterial(id: string, data: Partial<Material>) {
   }
 }
 
-// DELETE a material
+//********************************//
+// ลบพัสดุ (Delete Material)
+//********************************//
 export async function deleteMaterial(id: string) {
   try {
     await sql`DELETE FROM materials WHERE id = ${id}`;

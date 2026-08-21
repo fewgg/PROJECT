@@ -6,18 +6,37 @@ import { Search, Filter, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 import { ProductCard, ProductCardProps } from "@/components/ui-custom/ProductCard";
 import { Material } from "@/app/actions/materials";
+import { Category } from "@/app/actions/categories";
 
-const CATEGORIES = ["ทั้งหมด", "พัสดุคอมพิวเตอร์และไอที", "พัสดุสำนักงาน", "พัสดุช่างและอุปกรณ์ทั่วไป", "พัสดุทำความสะอาด"];
+//********************************//
+// ค่าเริ่มต้นของหมวดหมู่พัสดุ
+//********************************//
+const DEFAULT_CATEGORIES = ["พัสดุคอมพิวเตอร์และไอที", "พัสดุสำนักงาน", "พัสดุช่างและอุปกรณ์ทั่วไป", "พัสดุทำความสะอาด"];
 
-export default function InventoryClient({ initialData }: { initialData: Material[] }) {
+export default function InventoryClient({ initialData, categories = [] }: { initialData: Material[]; categories?: Category[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const defaultQuery = searchParams.get("q") || "";
   
+  //********************************//
+  // State การค้นหาและตัวกรอง
+  //********************************//
   const [searchQuery, setSearchQuery] = useState(defaultQuery);
   const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["AVAILABLE", "LOW_STOCK"]);
 
+  //********************************//
+  // ดึงรายการหมวดหมู่ทั้งหมดสำหรับแสดงผล
+  //********************************//
+  const categoryList = ["ทั้งหมด", ...Array.from(new Set([
+    ...categories.map(c => c.name),
+    ...DEFAULT_CATEGORIES,
+    ...initialData.map(m => m.category).filter(Boolean)
+  ]))];
+
+  //********************************//
+  // สลับการเลือกสถานะพัสดุ
+  //********************************//
   const toggleStatus = (status: string) => {
     setSelectedStatuses((prev) => 
       prev.includes(status) 
@@ -26,9 +45,14 @@ export default function InventoryClient({ initialData }: { initialData: Material
     );
   };
 
+  //********************************//
+  // การกรองข้อมูลพัสดุตามคำค้นหา, หมวดหมู่, และสถานะ
+  //********************************//
   const filteredData = initialData.filter((item) => {
     const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCategory = selectedCategory === "ทั้งหมด" || item.category === selectedCategory;
+    const matchCategory = selectedCategory === "ทั้งหมด" || 
+      item.category === selectedCategory ||
+      (item.category && item.category.replace("วัสดุ", "พัสดุ") === selectedCategory.replace("วัสดุ", "พัสดุ"));
     const matchStatus = selectedStatuses.includes(item.status);
     return matchSearch && matchCategory && matchStatus;
   });
@@ -36,14 +60,16 @@ export default function InventoryClient({ initialData }: { initialData: Material
   return (
     <div className="w-full flex flex-col md:flex-row gap-8 py-8 animate-in fade-in duration-500">
       
-      {/* Sidebar Filters */}
+      {/* ******************************** */}
+      {/* Sidebar ตัวกรองหมวดหมู่และสถานะ      */}
+      {/* ******************************** */}
       <aside className="w-full md:w-64 shrink-0 space-y-8">
         <div>
           <div className="flex items-center gap-2 mb-4 kanit-semibold text-slate-800">
             <Filter className="w-4 h-4" /> หมวดหมู่พัสดุ
           </div>
           <div className="flex flex-col gap-2">
-            {CATEGORIES.map((cat) => (
+            {categoryList.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -95,7 +121,9 @@ export default function InventoryClient({ initialData }: { initialData: Material
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* ******************************** */}
+      {/* ส่วนแสดงรายการพัสดุและช่องค้นหา     */}
+      {/* ******************************** */}
       <main className="flex-1 min-w-0 flex flex-col gap-6">
         {/* Header & Search */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
