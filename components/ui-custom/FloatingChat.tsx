@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, User, ShieldCheck, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, User, ShieldCheck, Loader2, ImagePlus, Trash2, Ban } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { ChatMessage, getChatMessages, sendMessage } from "@/app/actions/chat";
+import { ChatMessage, getChatMessages, sendMessage, deleteMessage, uploadChatImage, sendImageMessage } from "@/app/actions/chat";
+import { toast } from "sonner";
 
 export function FloatingChat() {
   const { user, isLoaded } = useUser();
@@ -11,11 +12,16 @@ export function FloatingChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   
   const isAdmin = user?.publicMetadata?.role === "admin";
 
-  // Auto scroll to bottom
+  //********************************//
+  // Auto scroll to bottom (เลื่อนลงล่าง)
+  //********************************//
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -26,7 +32,9 @@ export function FloatingChat() {
     }
   }, [messages, isOpen]);
 
-  // Poll for messages when open
+  //********************************//
+  // Poll for messages (ดึงข้อความ)
+  //********************************//
   useEffect(() => {
     if (!isOpen || !user || isAdmin) return;
 
@@ -36,7 +44,6 @@ export function FloatingChat() {
       try {
         const msgs = await getChatMessages(user.id);
         if (isSubscribed) {
-          // Only update if there's a change to avoid unnecessary re-renders
           if (JSON.stringify(msgs) !== JSON.stringify(messages)) {
              setMessages(msgs);
           }
@@ -47,7 +54,7 @@ export function FloatingChat() {
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000); // Poll every 3 seconds
+    const interval = setInterval(fetchMessages, 3000);
 
     return () => {
       isSubscribed = false;
@@ -55,6 +62,9 @@ export function FloatingChat() {
     };
   }, [isOpen, user, isAdmin, messages]);
 
+  //********************************//
+  // ส่งข้อความ (Send Message)
+  //********************************//
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
@@ -63,7 +73,6 @@ export function FloatingChat() {
     const content = newMessage.trim();
     setNewMessage("");
 
-    // Optimistic update
     const tempId = Date.now().toString();
     setMessages(prev => [...prev, {
       id: tempId,
@@ -71,6 +80,8 @@ export function FloatingChat() {
       sender_id: user.id,
       sender_role: "user",
       content,
+      image_url: null,
+      is_deleted: false,
       created_at: new Date(),
       is_read: false
     }]);
@@ -79,11 +90,55 @@ export function FloatingChat() {
     setSending(false);
   };
 
+  //********************************//
+  // อัปโหลดและส่งรูปภาพ (Upload & Send Image)
+  //********************************//
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !user) return;
+    
+    const file = e.target.files[0];
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const result = await uploadChatImage(formData);
+      if (result.success && result.url) {
+        await sendImageMessage(user.id, result.url);
+        toast.success("ส่งรูปภาพสำเร็จ");
+      } else {
+        toast.error(result.error || "ส่งรูปภาพไม่สำเร็จ");
+      }
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการส่งรูปภาพ");
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  //********************************//
+  // ลบข้อความ (Delete Message)
+  //********************************//
+  const handleDelete = async (messageId: string) => {
+    try {
+      const result = await deleteMessage(messageId);
+      if (result.success) {
+        setMessages(prev => prev.map(m => 
+          m.id === messageId ? { ...m, is_deleted: true, content: "", image_url: null } : m
+        ));
+        toast.success("ลบข้อความสำเร็จ");
+      }
+    } catch {
+      toast.error("ลบข้อความไม่สำเร็จ");
+    }
+  };
+
   if (!isLoaded || !user || isAdmin) {
-    return null; // Don't show floating widget for guests or admins (admins have a dashboard)
+    return null;
   }
 
-  // Count unread messages from admin
   const unreadCount = messages.filter(m => m.sender_role === 'admin' && !m.is_read).length;
 
   return (
@@ -122,12 +177,45 @@ export function FloatingChat() {
               messages.map((msg) => {
                 const isMe = msg.sender_role === "user";
                 return (
-                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} group`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isMe ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-600'}`}>
                       {isMe ? <User className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
                     </div>
-                    <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm kanit-regular ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'}`}>
-                      {msg.content}
+                    <div className="flex flex-col gap-1 max-w-[75%]">
+                      {msg.is_deleted ? (
+                        <div className="rounded-2xl px-4 py-2 text-sm kanit-regular bg-slate-100 text-slate-400 italic border border-slate-200 flex items-center gap-1.5">
+                          <Ban className="w-3 h-3" />
+                          ข้อความถูกลบ
+                        </div>
+                      ) : (
+                        <>
+                          {msg.image_url && (
+                            <img 
+                              src={msg.image_url} 
+                              alt="รูปภาพ" 
+                              className="max-w-[200px] rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setPreviewImage(msg.image_url)}
+                            />
+                          )}
+                          {msg.content && (
+                            <div className={`rounded-2xl px-4 py-2 text-sm kanit-regular ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'}`}>
+                              {msg.content}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Delete button - only for own messages */}
+                      {!msg.is_deleted && isMe && (
+                        <button
+                          onClick={() => handleDelete(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] kanit-regular text-slate-400 hover:text-red-500 flex items-center gap-0.5 self-end cursor-pointer"
+                          title="ลบข้อความ"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                          ลบ
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -138,7 +226,25 @@ export function FloatingChat() {
 
           {/* Input Area */}
           <div className="p-3 bg-white border-t border-slate-100 shrink-0">
-            <form onSubmit={handleSend} className="flex gap-2">
+            <form onSubmit={handleSend} className="flex gap-2 items-center">
+              {/* ปุ่มส่งรูปภาพ */}
+              <input
+                type="file"
+                accept="image/*"
+                ref={imageInputRef}
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                title="ส่งรูปภาพ"
+              >
+                {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+              </button>
+
               <input
                 type="text"
                 value={newMessage}
@@ -154,6 +260,24 @@ export function FloatingChat() {
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image Preview Lightbox */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-lg max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center text-slate-600 hover:bg-slate-100 z-10 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <img src={previewImage} alt="Preview" className="max-w-full max-h-[75vh] rounded-2xl shadow-2xl object-contain" />
           </div>
         </div>
       )}
