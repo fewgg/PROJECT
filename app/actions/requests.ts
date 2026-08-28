@@ -168,3 +168,98 @@ export async function getUserRequests() {
     return [];
   }
 }
+
+//********************************//
+// ดึงข้อมูลประวัติการเบิกพัสดุทั้งหมด (Get All Outbound Requests for Admin)
+//********************************//
+export async function getAllRequests() {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    if (user.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    const transactions = await sql<Transaction[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image 
+      FROM transactions t
+      JOIN materials m ON t.material_id = m.id
+      WHERE t.type = 'OUTBOUND'
+      ORDER BY t.created_at DESC
+    `;
+
+    if (transactions.length === 0) return [];
+
+    // Fetch user details from Clerk
+    const users = await client.users.getUserList({
+      userId: transactions.map(t => t.user_id)
+    });
+
+    return transactions.map(t => {
+      const u = users.data.find(user => user.id === t.user_id);
+      return {
+        ...t,
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User"
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching all requests for admin:", error);
+    return [];
+  }
+}
+
+//********************************//
+// ดำเนินการรับคืนพัสดุ (Return Request & Restore Stock)
+//********************************//
+export async function returnRequest(transactionId: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    if (user.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    await sql.begin(async (sql) => {
+      // ดึงประวัติรายการที่เป็นสถานะ APPROVED
+      const [tx] = await sql`
+        SELECT * FROM transactions WHERE id = ${transactionId} AND status = 'APPROVED'
+      `;
+      if (!tx) throw new Error("ไม่พบรายการเบิกที่เปิดใช้งานอยู่ หรือ รายการนี้ถูกคืนแล้ว");
+
+      // อัปเดตสถานะเป็น COMPLETED
+      await sql`
+        UPDATE transactions SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${transactionId}
+      `;
+
+      // คืนจำนวนพัสดุกลับเข้าคลัง
+      await sql`
+        UPDATE materials 
+        SET quantity = quantity + ${tx.quantity},
+            status = CASE 
+                       WHEN (quantity + ${tx.quantity}) <= 0 THEN 'OUT_OF_STOCK'
+                       WHEN (quantity + ${tx.quantity}) <= 5 THEN 'LOW_STOCK'
+                       ELSE 'AVAILABLE'
+                     END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${tx.material_id}
+      `;
+    });
+
+    revalidatePath("/admin/requests");
+    revalidatePath("/admin");
+    revalidatePath("/requests");
+    revalidatePath("/inventory");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error returning request:", error);
+    return { success: false, error: error.message || "Failed to return request" };
+  }
+}
