@@ -319,3 +319,43 @@ export async function returnRequest(transactionId: string) {
     return { success: false, error: error.message || "Failed to return request" };
   }
 }
+
+// Get all returned requests (admin)
+export async function getReturnRequests() {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    if (user.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    const transactions = await sql<Transaction[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image, m.unit
+      FROM transactions t
+      JOIN materials m ON t.material_id = m.id
+      WHERE t.type = 'OUTBOUND' AND t.status = 'COMPLETED'
+      ORDER BY t.updated_at DESC
+    `;
+
+    if (transactions.length === 0) return [];
+
+    // Fetch user details from Clerk
+    const users = await client.users.getUserList({
+      userId: transactions.map(t => t.user_id)
+    });
+
+    return transactions.map(t => {
+      const u = users.data.find(user => user.id === t.user_id);
+      return {
+        ...t,
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User"
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching return requests for admin:", error);
+    return [];
+  }
+}
