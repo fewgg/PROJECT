@@ -8,11 +8,6 @@ import { ProductCard, ProductCardProps } from "@/components/ui-custom/ProductCar
 import { Material } from "@/app/actions/materials";
 import { Category } from "@/app/actions/categories";
 
-//********************************//
-// ค่าเริ่มต้นของหมวดหมู่พัสดุ
-//********************************//
-const DEFAULT_CATEGORIES = ["พัสดุคอมพิวเตอร์และไอที", "พัสดุสำนักงาน", "พัสดุช่างและอุปกรณ์ทั่วไป", "พัสดุทำความสะอาด"];
-
 export default function InventoryClient({ initialData, categories = [] }: { initialData: Material[]; categories?: Category[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,7 +25,6 @@ export default function InventoryClient({ initialData, categories = [] }: { init
   //********************************//
   const categoryList = ["ทั้งหมด", ...Array.from(new Set([
     ...categories.map(c => c.name),
-    ...DEFAULT_CATEGORIES,
     ...initialData.map(m => m.category).filter(Boolean)
   ]))];
 
