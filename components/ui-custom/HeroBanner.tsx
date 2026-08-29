@@ -4,7 +4,13 @@ import { motion } from "framer-motion";
 import { Package, Search, Box } from "lucide-react";
 import Link from "next/link";
 
-export function HeroBanner() {
+export function HeroBanner({ 
+  systemName = "ระบบคลังพัสดุ", 
+  schoolName = "วิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร" 
+}: { 
+  systemName?: string; 
+  schoolName?: string; 
+}) {
   return (
     <div className="relative w-full h-auto min-h-[320px] rounded-[32px] overflow-hidden shadow-xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
       {/* Background Image */}
@@ -26,7 +32,7 @@ export function HeroBanner() {
             transition={{ duration: 0.5 }}
             className="text-4xl md:text-5xl kanit-bold tracking-tight mb-2"
           >
-            ระบบคลังพัสดุ
+            {systemName}
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -34,7 +40,7 @@ export function HeroBanner() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-blue-100 text-lg md:text-xl kanit-medium"
           >
-            ระบบบริหารคลังพัสดุสำหรับวิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร
+            ระบบบริหารคลังสำหรับ{schoolName}
           </motion.p>
         </div>
 

@@ -8,7 +8,13 @@ import Link from "next/link";
 import { Material } from "@/app/actions/materials";
 import { ProductCardProps } from "@/components/ui-custom/ProductCard";
 
-export default function ProductDetailsClient({ product }: { product: Material }) {
+export default function ProductDetailsClient({ 
+  product, 
+  schoolName = "วิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร" 
+}: { 
+  product: Material; 
+  schoolName?: string; 
+}) {
   const { addToCart } = useCart();
   
   // สร้างคำอธิบายจำลอง (Mockup Description) ตามหมวดหมู่
@@ -23,7 +29,7 @@ export default function ProductDetailsClient({ product }: { product: Material })
       case "พัสดุช่างและอุปกรณ์ทั่วไป":
         return "เครื่องมือช่างและอุปกรณ์สำหรับการบำรุงรักษาอาคารสถานที่ แข็งแรงทนทาน ได้มาตรฐานอุตสาหกรรม";
       default:
-        return "พัสดุและอุปกรณ์คุณภาพสูง สำหรับใช้งานภายในวิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร";
+        return `พัสดุและอุปกรณ์คุณภาพสูง สำหรับใช้งานภายใน${schoolName}`;
     }
   };
 

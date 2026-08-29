@@ -1,6 +1,7 @@
 import AdminSettingsClient from "./AdminSettingsClient";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getSystemSettings } from "@/app/actions/settings";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,5 +13,7 @@ export default async function SettingsPage() {
     redirect("/");
   }
 
-  return <AdminSettingsClient />;
+  const initialSettings = await getSystemSettings();
+
+  return <AdminSettingsClient initialSettings={initialSettings} />;
 }

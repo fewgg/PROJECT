@@ -13,6 +13,7 @@ import { CartButton } from "@/components/ui-custom/CartButton";
 import { RequisitionCart } from "@/components/ui-custom/RequisitionCart";
 import { NotificationBell } from "@/components/ui-custom/NotificationBell";
 import { FloatingChat } from "@/components/ui-custom/FloatingChat";
+import { getSystemSettings } from "@/app/actions/settings";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default async function RootLayout({
 }>) {
   const user = await currentUser();
   const isAdmin = user?.publicMetadata?.role === "admin";
+  const settings = await getSystemSettings();
 
   return (
     <html lang="en">
@@ -51,7 +53,9 @@ export default async function RootLayout({
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-transparent shadow-sm group-hover:scale-105 transition-transform">
                         <img src="/logo.png" alt="NMC Logo" className="w-full h-full object-contain" />
                       </div>
-                      <div className="kanit-semibold text-xl tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors hidden sm:block">ระบบคลังพัสดุ</div>
+                      <div className="kanit-semibold text-xl tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors hidden sm:block">
+                        {settings.systemName || "ระบบคลังพัสดุ"}
+                      </div>
                     </Link>
                   </div>
                   
@@ -100,7 +104,7 @@ export default async function RootLayout({
 
                 <footer className="w-full border-t bg-white py-8 mt-auto">
                   <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex justify-between items-center text-slate-500 text-sm kanit-regular">
-                    <p>&copy; 2026 ระบบคลังพัสดุ. All rights reserved.</p>
+                    <p>&copy; 2026 {settings.systemName || "ระบบคลังพัสดุ"}. All rights reserved.</p>
                     <div className="flex gap-4">
                       <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
                       <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>

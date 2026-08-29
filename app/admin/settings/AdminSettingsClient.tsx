@@ -4,26 +4,29 @@ import { useState } from "react";
 import { Save, Bell, Shield, Mail, Loader2, Building } from "lucide-react";
 import { toast } from "sonner";
 
-export default function AdminSettingsClient() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    schoolName: "วิทยาลัยเทคนิคนวมินทราชินีมุกดาหาร",
-    systemName: "ระบบบริหารคลังพัสดุ ",
-    contactEmail: "admin@.ac.th",
-    notifyOnNewRequest: true,
-    notifyOnLowStock: true,
-    autoApproveSmallRequests: false,
-  });
+import { updateSystemSettings, SystemSettings } from "@/app/actions/settings";
 
-  const handleSave = (e: React.FormEvent) => {
+export default function AdminSettingsClient({ initialSettings }: { initialSettings: SystemSettings }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [settings, setSettings] = useState<SystemSettings>(initialSettings);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
-    // จำลองการบันทึกข้อมูล (Mockup)
-    setTimeout(() => {
+    try {
+      const res = await updateSystemSettings(settings);
+      if (res.success) {
+        toast.success("บันทึกการตั้งค่าเรียบร้อยแล้ว");
+      } else {
+        toast.error(res.error || "เกิดข้อผิดพลาดในการบันทึกการตั้งค่า");
+      }
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
       setIsSaving(false);
-      toast.success("บันทึกการตั้งค่าเรียบร้อยแล้ว");
-    }, 1000);
+    }
   };
 
   return (

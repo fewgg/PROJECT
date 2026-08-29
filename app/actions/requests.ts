@@ -3,6 +3,7 @@
 import postgres from "postgres";
 import { revalidatePath } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import { getSystemSettings } from "./settings";
 
 const sql = postgres(process.env.DATABASE_URL as string, { ssl: "require" });
 
@@ -33,13 +34,68 @@ export async function createRequest(materialId: string, quantity: number, remark
     const user = await client.users.getUser(userId);
     const department = (user.publicMetadata?.department as string) || null;
 
-    await sql`
-      INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
-      VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department})
-    `;
+    // Check if auto-approve is enabled for small requests (quantity <= 1)
+    let shouldAutoApprove = false;
+    if (quantity <= 1) {
+      try {
+        const [settingRow] = await sql`
+          SELECT value FROM system_settings WHERE key = 'autoApproveSmallRequests'
+        `;
+        if (settingRow && (settingRow.value === true || settingRow.value === 'true')) {
+          shouldAutoApprove = true;
+        }
+      } catch (e) {
+        console.error("Failed to query settings for auto-approval, defaulting to PENDING:", e);
+      }
+    }
+
+    if (shouldAutoApprove) {
+      // Verify stock is sufficient before auto-approving
+      const [material] = await sql`
+        SELECT quantity FROM materials WHERE id = ${materialId}
+      `;
+      
+      if (!material || material.quantity < quantity) {
+        // Fall back to PENDING if stock is insufficient
+        await sql`
+          INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
+          VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department})
+        `;
+      } else {
+        await sql.begin(async (sql) => {
+          // 1. Insert transaction as APPROVED
+          await sql`
+            INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
+            VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'APPROVED', ${remark || null}, ${department})
+          `;
+          
+          // 2. Deduct quantity from materials table
+          await sql`
+            UPDATE materials 
+            SET quantity = quantity - ${quantity},
+                status = CASE 
+                           WHEN (quantity - ${quantity}) <= 0 THEN 'OUT_OF_STOCK'
+                           WHEN (quantity - ${quantity}) <= 5 THEN 'LOW_STOCK'
+                           ELSE 'AVAILABLE'
+                         END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${materialId}
+          `;
+        });
+      }
+    } else {
+      await sql`
+        INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
+        VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department})
+      `;
+    }
     
+    // Refresh relevant paths
     revalidatePath("/requests");
     revalidatePath("/admin/requests");
+    revalidatePath("/inventory");
+    revalidatePath("/");
+    
     return { success: true };
   } catch (error) {
     console.error("Error creating request:", error);
