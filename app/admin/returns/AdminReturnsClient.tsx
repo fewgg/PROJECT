@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, RotateCcw, Calendar, User, Building, Package, Undo2, Loader2, CheckCircle2, History } from "lucide-react";
+import { Search, RotateCcw, Calendar, User, Building, Package, Undo2, Loader2, CheckCircle2, History, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { returnRequest } from "@/app/actions/requests";
+import { returnRequest, rejectReturnRequest } from "@/app/actions/requests";
 
 export default function AdminReturnsClient({ returnRequests }: { returnRequests: any[] }) {
   const router = useRouter();
@@ -14,10 +14,13 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
 
   // Filter and counts
   const countPending = returnRequests.filter((r) => r.status === "RETURN_PENDING").length;
-  const countCompleted = returnRequests.filter((r) => r.status === "COMPLETED").length;
+  const countCompleted = returnRequests.filter((r) => r.status === "COMPLETED" || r.status === "RETURN_REJECTED").length;
 
   const filteredRequests = returnRequests.filter((r) => {
-    const matchesTab = activeTab === "pending" ? r.status === "RETURN_PENDING" : r.status === "COMPLETED";
+    const matchesTab = activeTab === "pending" 
+      ? r.status === "RETURN_PENDING" 
+      : (r.status === "COMPLETED" || r.status === "RETURN_REJECTED");
+      
     const matchesSearch =
       (r.user_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.material_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -38,6 +41,27 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
       }
       setProcessingId(null);
     }
+  };
+
+  // Reject return action
+  const handleReject = async (id: string) => {
+    const reason = prompt("กรุณาระบุเหตุผลในการปฏิเสธการรับคืน:", "พัสดุชำรุดเสียหาย / ข้อมูลไม่ตรงตามจริง");
+    if (reason === null) return; // User cancelled the prompt
+
+    if (!reason.trim()) {
+      toast.error("กรุณาระบุเหตุผลในการปฏิเสธ");
+      return;
+    }
+
+    setProcessingId(id);
+    const res = await rejectReturnRequest(id, reason.trim());
+    if (res.success) {
+      toast.success("ปฏิเสธการรับคืนพัสดุเรียบร้อย");
+      router.refresh();
+    } else {
+      toast.error("เกิดข้อผิดพลาด: " + res.error);
+    }
+    setProcessingId(null);
   };
 
   return (
@@ -62,7 +86,7 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
           className={`pb-3 text-sm kanit-semibold transition-all relative flex items-center gap-2 cursor-pointer ${activeTab === "completed" ? "text-blue-600 font-bold" : "text-slate-400 hover:text-slate-600"}`}
         >
           <History className="w-4 h-4" />
-          ประวัติการรับคืนสำเร็จ ({countCompleted})
+          ประวัติการจัดการคืน ({countCompleted})
           {activeTab === "completed" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
         </button>
       </div>
@@ -93,7 +117,7 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">ผู้คืนพัสดุ</th>
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">รายการพัสดุ</th>
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">วันเวลาที่ส่งคืน</th>
-                <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">หมายเหตุ</th>
+                <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">หมายเหตุ / เหตุผลปฏิเสธ</th>
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600 text-right">การจัดการ</th>
               </tr>
             </thead>
@@ -154,7 +178,9 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                   {/* Remarks */}
                   <td className="px-6 py-4 kanit-regular text-sm text-slate-500 max-w-xs truncate">
                     {req.remark ? (
-                      <span className="italic text-slate-600">"{req.remark}"</span>
+                      <span className={`italic ${req.status === 'RETURN_REJECTED' ? 'text-rose-600 font-medium' : 'text-slate-600'}`}>
+                        "{req.remark}"
+                      </span>
                     ) : (
                       <span className="text-slate-400">-</span>
                     )}
@@ -163,16 +189,31 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                   {/* Actions */}
                   <td className="px-6 py-4 text-right whitespace-nowrap">
                     {req.status === "RETURN_PENDING" ? (
-                      <button
-                        onClick={() => handleReturn(req.id)}
-                        disabled={processingId === req.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all border border-blue-100 cursor-pointer shadow-sm animate-bounce"
-                      >
-                        {processingId === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
-                        ยืนยันรับคืน
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleReturn(req.id)}
+                          disabled={processingId === req.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all border border-blue-100 cursor-pointer shadow-sm"
+                        >
+                          {processingId === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
+                          ยืนยันรับคืน
+                        </button>
+                        <button
+                          onClick={() => handleReject(req.id)}
+                          disabled={processingId === req.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all border border-rose-100 cursor-pointer shadow-sm"
+                        >
+                          {processingId === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                          ปฏิเสธ
+                        </button>
+                      </div>
+                    ) : req.status === "RETURN_REJECTED" ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-rose-500 bg-rose-50 border border-rose-100 rounded-lg text-xs kanit-medium">
+                        <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                        ปฏิเสธการคืนแล้ว
+                      </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-400 text-xs kanit-regular">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg text-xs kanit-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                         รับคืนสำเร็จแล้ว
                       </span>

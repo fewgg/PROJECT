@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Clock, CheckCircle, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileText, Clock, CheckCircle, Search, XCircle, Undo2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { userReturnRequest } from "@/app/actions/requests";
 
 type Transaction = {
   id: string;
@@ -19,16 +22,19 @@ type Transaction = {
 };
 
 export default function ReturnsClient({ initialRequests }: { initialRequests: Transaction[] }) {
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
-  // Filter for only return-related transactions (RETURN_PENDING, COMPLETED)
+  // Filter for only return-related transactions (RETURN_PENDING, COMPLETED, RETURN_REJECTED)
   const returnRequests = initialRequests.filter(
-    (r) => r.status === "RETURN_PENDING" || r.status === "COMPLETED"
+    (r) => r.status === "RETURN_PENDING" || r.status === "COMPLETED" || r.status === "RETURN_REJECTED"
   );
 
   const countAll = returnRequests.length;
   const countPending = returnRequests.filter((r) => r.status === "RETURN_PENDING").length;
+  const countRejected = returnRequests.filter((r) => r.status === "RETURN_REJECTED").length;
   const countCompleted = returnRequests.filter((r) => r.status === "COMPLETED").length;
 
   const filteredRequests = returnRequests.filter((req) => {
@@ -39,6 +45,20 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
       (req.department || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchStatus && matchSearch;
   });
+
+  const handleRetryReturn = async (id: string) => {
+    if (confirm("ต้องการส่งคำร้องคืนพัสดุชิ้นนี้อีกครั้งหรือไม่?")) {
+      setSubmittingId(id);
+      const res = await userReturnRequest(id);
+      if (res.success) {
+        toast.success("ส่งคำร้องขอคืนพัสดุอีกครั้งสำเร็จ");
+        router.refresh();
+      } else {
+        toast.error(res.error || "เกิดข้อผิดพลาดในการส่งคำร้อง");
+      }
+      setSubmittingId(null);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-4xl mx-auto py-8">
@@ -91,6 +111,21 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
           </button>
 
           <button
+            onClick={() => setSelectedStatus("RETURN_REJECTED")}
+            className={`px-3.5 py-2 rounded-xl text-xs kanit-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              selectedStatus === "RETURN_REJECTED"
+                ? "bg-rose-600 text-white shadow-sm"
+                : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+            }`}
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            ถูกปฏิเสธการคืน
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${selectedStatus === "RETURN_REJECTED" ? "bg-rose-700 text-white" : "bg-rose-200/70 text-rose-800"}`}>
+              {countRejected}
+            </span>
+          </button>
+
+          <button
             onClick={() => setSelectedStatus("COMPLETED")}
             className={`px-3.5 py-2 rounded-xl text-xs kanit-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
               selectedStatus === "COMPLETED"
@@ -131,7 +166,11 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
                       {new Date(req.updated_at).toLocaleString('th-TH')}
                     </p>
                   </div>
-                  {req.remark && <p className="text-xs text-slate-400 mt-1 italic">"{req.remark}"</p>}
+                  {req.remark && (
+                    <p className={`text-xs mt-1.5 italic ${req.status === 'RETURN_REJECTED' ? 'text-rose-600 font-medium' : 'text-slate-400'}`}>
+                      {req.status === 'RETURN_REJECTED' ? `เหตุผลที่ปฏิเสธ: "${req.remark}"` : `"${req.remark}"`}
+                    </p>
+                  )}
                 </div>
               </div>
               
@@ -141,7 +180,7 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
                   <div className="kanit-bold text-2xl text-slate-700">{req.quantity}</div>
                 </div>
                 
-                <div className="flex flex-col items-end min-w-[120px]">
+                <div className="flex flex-col items-end min-w-[140px] gap-2">
                   {req.status === 'RETURN_PENDING' && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 kanit-medium text-sm border border-orange-100">
                       <Clock className="w-4 h-4 mr-1.5 animate-pulse" /> รอแอดมินยืนยันคืน
@@ -150,6 +189,21 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
                   {req.status === 'COMPLETED' && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 kanit-medium text-sm border border-blue-100">
                       <CheckCircle className="w-4 h-4 mr-1.5" /> คืนพัสดุแล้ว
+                    </div>
+                  )}
+                  {req.status === 'RETURN_REJECTED' && (
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-rose-50 text-rose-600 kanit-medium text-sm border border-rose-100">
+                        <XCircle className="w-4 h-4 mr-1.5" /> ถูกปฏิเสธการคืน
+                      </div>
+                      <button
+                        onClick={() => handleRetryReturn(req.id)}
+                        disabled={submittingId === req.id}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all shadow-sm cursor-pointer"
+                      >
+                        {submittingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Undo2 className="w-3 h-3" />}
+                        ส่งคืนพัสดุอีกครั้ง
+                      </button>
                     </div>
                   )}
                 </div>

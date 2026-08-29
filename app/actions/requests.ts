@@ -13,7 +13,7 @@ export type Transaction = {
   user_id: string;
   type: "OUTBOUND" | "INBOUND";
   quantity: number;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED" | "RETURN_PENDING";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED" | "RETURN_PENDING" | "RETURN_REJECTED";
   remark: string | null;
   department?: string | null;
   created_at: Date;
@@ -337,9 +337,13 @@ export async function getReturnRequests() {
       SELECT t.*, m.name as material_name, m.image as material_image, m.unit
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
-      WHERE t.type = 'OUTBOUND' AND t.status IN ('RETURN_PENDING', 'COMPLETED')
+      WHERE t.type = 'OUTBOUND' AND t.status IN ('RETURN_PENDING', 'COMPLETED', 'RETURN_REJECTED')
       ORDER BY 
-        CASE WHEN t.status = 'RETURN_PENDING' THEN 1 ELSE 2 END,
+        CASE 
+          WHEN t.status = 'RETURN_PENDING' THEN 1 
+          WHEN t.status = 'RETURN_REJECTED' THEN 2 
+          ELSE 3 
+        END,
         t.updated_at DESC
     `;
 
@@ -369,10 +373,10 @@ export async function userReturnRequest(transactionId: string) {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
-    // Verify the transaction belongs to the requesting user and status is APPROVED
+    // Verify the transaction belongs to the requesting user and status is APPROVED or RETURN_REJECTED
     const [tx] = await sql`
       SELECT * FROM transactions 
-      WHERE id = ${transactionId} AND user_id = ${userId} AND status = 'APPROVED'
+      WHERE id = ${transactionId} AND user_id = ${userId} AND status IN ('APPROVED', 'RETURN_REJECTED')
     `;
     if (!tx) throw new Error("ไม่พบรายการเบิกที่เปิดใช้งานอยู่ หรือ รายการนี้ถูกคืนแล้ว");
 
@@ -383,6 +387,7 @@ export async function userReturnRequest(transactionId: string) {
     `;
 
     revalidatePath("/requests");
+    revalidatePath("/returns");
     revalidatePath("/admin/requests");
     revalidatePath("/admin/returns");
     revalidatePath("/admin");
@@ -392,5 +397,39 @@ export async function userReturnRequest(transactionId: string) {
   } catch (error: any) {
     console.error("Error in userReturnRequest:", error);
     return { success: false, error: error.message || "Failed to return request" };
+  }
+}
+
+// Reject user return request (admin)
+export async function rejectReturnRequest(transactionId: string, remark?: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    if (user.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    // Update status to RETURN_REJECTED and record the reason in remark
+    await sql`
+      UPDATE transactions 
+      SET status = 'RETURN_REJECTED', 
+          remark = ${remark || 'ส่งคืนพัสดุไม่ถูกต้อง / ไม่ผ่านการตรวจสอบ'}, 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${transactionId} AND status = 'RETURN_PENDING'
+    `;
+
+    revalidatePath("/admin/returns");
+    revalidatePath("/admin");
+    revalidatePath("/requests");
+    revalidatePath("/returns");
+    revalidatePath("/inventory");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in rejectReturnRequest:", error);
+    return { success: false, error: error.message || "Failed to reject return request" };
   }
 }
