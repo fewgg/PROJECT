@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Clock, CheckCircle, XCircle, Search, Filter } from "lucide-react";
+import { FileText, Clock, CheckCircle, XCircle, Search, Filter, RotateCcw, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { userReturnRequest } from "@/app/actions/requests";
 
 //********************************//
 // Type ของข้อมูลคำร้อง
@@ -25,11 +28,31 @@ type Transaction = {
 // Component หลักประวัติการเบิกพัสดุ
 //********************************//
 export default function RequestsClient({ initialRequests }: { initialRequests: Transaction[] }) {
+  const router = useRouter();
+  const [returningId, setReturningId] = useState<string | null>(null);
+
   //********************************//
   // State การค้นหาและตัวกรองสถานะ
   //********************************//
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  //********************************//
+  // ส่งคืนพัสดุ (User Return Action)
+  //********************************//
+  const handleUserReturn = async (id: string) => {
+    if (confirm("ยืนยันว่าคุณต้องการส่งคืนพัสดุนี้กลับเข้าสู่คลัง?")) {
+      setReturningId(id);
+      const res = await userReturnRequest(id);
+      if (res.success) {
+        toast.success("ส่งคืนพัสดุสำเร็จ");
+        router.refresh();
+      } else {
+        toast.error(res.error || "เกิดข้อผิดพลาดในการส่งคืน");
+      }
+      setReturningId(null);
+    }
+  };
 
   //********************************//
   // คำนวณจำนวนคำร้องแต่ละสถานะ
@@ -199,8 +222,22 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
                     </div>
                   )}
                   {req.status === 'APPROVED' && (
-                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 kanit-medium text-sm border border-emerald-100">
-                      <CheckCircle className="w-4 h-4 mr-1.5" /> อนุมัติแล้ว
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 kanit-medium text-sm border border-emerald-100">
+                        <CheckCircle className="w-4 h-4 mr-1.5" /> อนุมัติแล้ว
+                      </div>
+                      <button
+                        onClick={() => handleUserReturn(req.id)}
+                        disabled={returningId === req.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all cursor-pointer shadow-sm border border-blue-100"
+                      >
+                        {returningId === req.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        )}
+                        ส่งคืนพัสดุ
+                      </button>
                     </div>
                   )}
                   {req.status === 'REJECTED' && (

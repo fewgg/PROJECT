@@ -359,3 +359,50 @@ export async function getReturnRequests() {
     return [];
   }
 }
+
+// User-initiated return request (user)
+export async function userReturnRequest(transactionId: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    // Verify the transaction belongs to the requesting user and status is APPROVED
+    const [tx] = await sql`
+      SELECT * FROM transactions 
+      WHERE id = ${transactionId} AND user_id = ${userId} AND status = 'APPROVED'
+    `;
+    if (!tx) throw new Error("ไม่พบรายการเบิกที่เปิดใช้งานอยู่ หรือ รายการนี้ถูกคืนแล้ว");
+
+    await sql.begin(async (sql) => {
+      // Update transaction status to COMPLETED
+      await sql`
+        UPDATE transactions SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${transactionId}
+      `;
+
+      // Restore stock to materials table
+      await sql`
+        UPDATE materials 
+        SET quantity = quantity + ${tx.quantity},
+            status = CASE 
+                       WHEN (quantity + ${tx.quantity}) <= 0 THEN 'OUT_OF_STOCK'
+                       WHEN (quantity + ${tx.quantity}) <= 5 THEN 'LOW_STOCK'
+                       ELSE 'AVAILABLE'
+                     END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${tx.material_id}
+      `;
+    });
+
+    revalidatePath("/requests");
+    revalidatePath("/admin/requests");
+    revalidatePath("/admin/returns");
+    revalidatePath("/admin");
+    revalidatePath("/inventory");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in userReturnRequest:", error);
+    return { success: false, error: error.message || "Failed to return request" };
+  }
+}
