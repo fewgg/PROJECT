@@ -54,22 +54,22 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
     }
   };
 
+  // กรองเฉพาะประวัติการเบิก (Pending, Approved, Rejected)
+  const borrowRequests = initialRequests.filter(r => r.status === "PENDING" || r.status === "APPROVED" || r.status === "REJECTED");
+
   //********************************//
   // คำนวณจำนวนคำร้องแต่ละสถานะ
   //********************************//
-  const countAll = initialRequests.length;
-  const countPending = initialRequests.filter(r => r.status === "PENDING").length;
-  const countApproved = initialRequests.filter(r => r.status === "APPROVED" || r.status === "RETURN_PENDING").length;
-  const countRejected = initialRequests.filter(r => r.status === "REJECTED").length;
-  const countCompleted = initialRequests.filter(r => r.status === "COMPLETED").length;
+  const countAll = borrowRequests.length;
+  const countPending = borrowRequests.filter(r => r.status === "PENDING").length;
+  const countApproved = borrowRequests.filter(r => r.status === "APPROVED").length;
+  const countRejected = borrowRequests.filter(r => r.status === "REJECTED").length;
 
   //********************************//
   // กรองรายการคำร้องตามสถานะและคำค้นหา
   //********************************//
-  const filteredRequests = initialRequests.filter(req => {
-    const matchStatus = selectedStatus === "ALL" || 
-      req.status === selectedStatus || 
-      (selectedStatus === "APPROVED" && (req.status === "APPROVED" || req.status === "RETURN_PENDING"));
+  const filteredRequests = borrowRequests.filter(req => {
+    const matchStatus = selectedStatus === "ALL" || req.status === selectedStatus;
     const matchSearch = 
       (req.material_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (req.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -164,20 +164,6 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
             </span>
           </button>
 
-          <button
-            onClick={() => setSelectedStatus("COMPLETED")}
-            className={`px-3.5 py-2 rounded-xl text-xs kanit-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-              selectedStatus === "COMPLETED"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-blue-50 text-blue-700 hover:bg-blue-100"
-            }`}
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            คืนพัสดุแล้ว
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${selectedStatus === "COMPLETED" ? "bg-blue-700 text-white" : "bg-blue-200/70 text-blue-800"}`}>
-              {countCompleted}
-            </span>
-          </button>
         </div>
       </div>
 

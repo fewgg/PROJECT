@@ -66,7 +66,10 @@ export default async function RootLayout({
                         หน้าหลัก (เบิกพัสดุ)
                       </Link>
                       <Link href="/requests" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
-                        ประวัติการเบิก-คืน
+                        ประวัติการเบิก
+                      </Link>
+                      <Link href="/returns" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
+                        ประวัติการคืน
                       </Link>
                     </div>
                   )}
