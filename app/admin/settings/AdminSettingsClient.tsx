@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Save, Bell, Shield, Mail, Loader2, Building } from "lucide-react";
 import { toast } from "sonner";
 
+import { useRouter } from "next/navigation";
 import { updateSystemSettings, SystemSettings } from "@/app/actions/settings";
 
 export default function AdminSettingsClient({ initialSettings }: { initialSettings: SystemSettings }) {
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
@@ -18,6 +20,7 @@ export default function AdminSettingsClient({ initialSettings }: { initialSettin
       const res = await updateSystemSettings(settings);
       if (res.success) {
         toast.success("บันทึกการตั้งค่าเรียบร้อยแล้ว");
+        router.refresh();
       } else {
         toast.error(res.error || "เกิดข้อผิดพลาดในการบันทึกการตั้งค่า");
       }

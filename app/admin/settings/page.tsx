@@ -15,5 +15,5 @@ export default async function SettingsPage() {
 
   const initialSettings = await getSystemSettings();
 
-  return <AdminSettingsClient initialSettings={initialSettings} />;
+  return <AdminSettingsClient key={JSON.stringify(initialSettings)} initialSettings={initialSettings} />;
 }
