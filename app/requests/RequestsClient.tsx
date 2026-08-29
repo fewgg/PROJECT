@@ -38,6 +38,7 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
   const countPending = initialRequests.filter(r => r.status === "PENDING").length;
   const countApproved = initialRequests.filter(r => r.status === "APPROVED").length;
   const countRejected = initialRequests.filter(r => r.status === "REJECTED").length;
+  const countCompleted = initialRequests.filter(r => r.status === "COMPLETED").length;
 
   //********************************//
   // กรองรายการคำร้องตามสถานะและคำค้นหา
@@ -57,8 +58,8 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
       {/* ส่วนหัวหน้าประวัติการเบิกพัสดุ       */}
       {/* ******************************** */}
       <div>
-        <h1 className="text-3xl kanit-bold tracking-tight text-slate-900">ประวัติการเบิกพัสดุ</h1>
-        <p className="kanit-regular text-slate-500 mt-1">รายการคำร้องขอเบิกพัสดุของคุณและสถานะปัจจุบัน</p>
+        <h1 className="text-3xl kanit-bold tracking-tight text-slate-900">ประวัติการเบิก-คืนพัสดุ</h1>
+        <p className="kanit-regular text-slate-500 mt-1">รายการคำร้องขอเบิกและส่งคืนพัสดุของคุณและสถานะปัจจุบัน</p>
       </div>
 
       {/* ******************************** */}
@@ -137,6 +138,21 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
               {countRejected}
             </span>
           </button>
+
+          <button
+            onClick={() => setSelectedStatus("COMPLETED")}
+            className={`px-3.5 py-2 rounded-xl text-xs kanit-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              selectedStatus === "COMPLETED"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+            }`}
+          >
+            <CheckCircle className="w-3.5 h-3.5" />
+            คืนพัสดุแล้ว
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${selectedStatus === "COMPLETED" ? "bg-blue-700 text-white" : "bg-blue-200/70 text-blue-800"}`}>
+              {countCompleted}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -190,6 +206,11 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
                   {req.status === 'REJECTED' && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-rose-50 text-rose-600 kanit-medium text-sm border border-rose-100">
                       <XCircle className="w-4 h-4 mr-1.5" /> ถูกปฏิเสธ
+                    </div>
+                  )}
+                  {req.status === 'COMPLETED' && (
+                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 kanit-medium text-sm border border-blue-100">
+                      <CheckCircle className="w-4 h-4 mr-1.5" /> คืนพัสดุแล้ว
                     </div>
                   )}
                 </div>
