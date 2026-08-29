@@ -3,12 +3,18 @@ import { getMaterials } from "@/app/actions/materials";
 import { getCategories } from "@/app/actions/categories";
 import InventoryClient from "./InventoryClient";
 import { checkOnboarding } from "@/lib/checkAuth";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 // Revalidate this page every 60 seconds or when revalidatePath is called
 export const revalidate = 60;
 
 export default async function InventoryPage() {
   await checkOnboarding();
+  const user = await currentUser();
+  if (user?.publicMetadata?.role === "admin") {
+    redirect("/admin");
+  }
   const [rawMaterials, rawCategories] = await Promise.all([
     getMaterials(),
     getCategories()

@@ -6,11 +6,17 @@ import { getDashboardStats, getRecentActivities } from "./actions/stats"
 import { getRecommendedMaterials } from "./actions/materials"
 import { checkOnboarding } from "@/lib/checkAuth"
 import { getSystemSettings } from "@/app/actions/settings"
+import { currentUser } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   await checkOnboarding();
+  const user = await currentUser();
+  if (user?.publicMetadata?.role === "admin") {
+    redirect("/admin");
+  }
   const [stats, activities, materials, settings] = await Promise.all([
     getDashboardStats(),
     getRecentActivities(),

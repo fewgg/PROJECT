@@ -60,14 +60,16 @@ export default async function RootLayout({
                   </div>
                   
                   {/* Navigation Links */}
-                  <div className="hidden md:flex items-center gap-1 mx-6">
-                    <Link href="/inventory" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
-                      หน้าหลัก (เบิกพัสดุ)
-                    </Link>
-                    <Link href="/requests" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
-                      ประวัติการเบิก-คืน
-                    </Link>
-                  </div>
+                  {!isAdmin && (
+                    <div className="hidden md:flex items-center gap-1 mx-6">
+                      <Link href="/inventory" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
+                        หน้าหลัก (เบิกพัสดุ)
+                      </Link>
+                      <Link href="/requests" className="kanit-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-colors">
+                        ประวัติการเบิก-คืน
+                      </Link>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-4 ml-auto">
                     {isAdmin && (
@@ -77,9 +79,9 @@ export default async function RootLayout({
                         </span>
                       </Link>
                     )}
-                    <CartButton />
+                    {!isAdmin && <CartButton />}
                     
-                    <NotificationBell />
+                    {!isAdmin && <NotificationBell />}
                     
                     {!user && (
                       <SignInButton mode="modal">
