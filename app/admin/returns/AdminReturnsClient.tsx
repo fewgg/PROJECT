@@ -1,25 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { Search, RotateCcw, Calendar, User, Building, Package } from "lucide-react";
-import { Transaction } from "@/app/actions/requests";
+import { useRouter } from "next/navigation";
+import { Search, RotateCcw, Calendar, User, Building, Package, Undo2, Loader2, CheckCircle2, History } from "lucide-react";
+import { toast } from "sonner";
+import { returnRequest } from "@/app/actions/requests";
 
 export default function AdminReturnsClient({ returnRequests }: { returnRequests: any[] }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"pending" | "completed">("pending");
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // Filter and counts
+  const countPending = returnRequests.filter((r) => r.status === "RETURN_PENDING").length;
+  const countCompleted = returnRequests.filter((r) => r.status === "COMPLETED").length;
 
   const filteredRequests = returnRequests.filter((r) => {
+    const matchesTab = activeTab === "pending" ? r.status === "RETURN_PENDING" : r.status === "COMPLETED";
     const matchesSearch =
       (r.user_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.material_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.department || "").toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    return matchesTab && matchesSearch;
   });
+
+  // Accept return action
+  const handleReturn = async (id: string) => {
+    if (confirm("ยืนยันการรับคืนพัสดุรายการนี้กลับเข้าสู่คลัง?")) {
+      setProcessingId(id);
+      const res = await returnRequest(id);
+      if (res.success) {
+        toast.success("รับคืนพัสดุและเพิ่มสต๊อกกลับเข้าคลังสำเร็จ!");
+        router.refresh();
+      } else {
+        toast.error("เกิดข้อผิดพลาด: " + res.error);
+      }
+      setProcessingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl kanit-bold text-slate-900 tracking-tight">ประวัติการคืนพัสดุ</h1>
-        <p className="text-slate-500 kanit-regular mt-1">บันทึกข้อมูลการส่งคืนพัสดุทั้งหมดของพนักงานและอาจารย์</p>
+        <p className="text-slate-500 kanit-regular mt-1">จัดการคำร้องและบันทึกข้อมูลการส่งคืนพัสดุทั้งหมดของพนักงานและอาจารย์</p>
+      </div>
+
+      {/* Tabs Layout */}
+      <div className="flex border-b border-slate-200 gap-6">
+        <button
+          onClick={() => { setActiveTab("pending"); setSearchQuery(""); }}
+          className={`pb-3 text-sm kanit-semibold transition-all relative flex items-center gap-2 cursor-pointer ${activeTab === "pending" ? "text-blue-600 font-bold" : "text-slate-400 hover:text-slate-600"}`}
+        >
+          <RotateCcw className="w-4 h-4" />
+          คำร้องขอส่งคืน ({countPending})
+          {activeTab === "pending" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
+        </button>
+        <button
+          onClick={() => { setActiveTab("completed"); setSearchQuery(""); }}
+          className={`pb-3 text-sm kanit-semibold transition-all relative flex items-center gap-2 cursor-pointer ${activeTab === "completed" ? "text-blue-600 font-bold" : "text-slate-400 hover:text-slate-600"}`}
+        >
+          <History className="w-4 h-4" />
+          ประวัติการรับคืนสำเร็จ ({countCompleted})
+          {activeTab === "completed" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
+        </button>
       </div>
 
       {/* Search Input */}
@@ -35,7 +80,7 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
           />
         </div>
         <div className="kanit-regular text-sm text-slate-500 hidden sm:block whitespace-nowrap">
-          ทั้งหมด {filteredRequests.length} รายการ
+          แสดงผล {filteredRequests.length} รายการ
         </div>
       </div>
 
@@ -49,6 +94,7 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">รายการพัสดุ</th>
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">วันเวลาที่ส่งคืน</th>
                 <th className="px-6 py-4 kanit-semibold text-sm text-slate-600">หมายเหตุ</th>
+                <th className="px-6 py-4 kanit-semibold text-sm text-slate-600 text-right">การจัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -113,15 +159,38 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                       <span className="text-slate-400">-</span>
                     )}
                   </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-4 text-right whitespace-nowrap">
+                    {req.status === "RETURN_PENDING" ? (
+                      <button
+                        onClick={() => handleReturn(req.id)}
+                        disabled={processingId === req.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all border border-blue-100 cursor-pointer shadow-sm animate-bounce"
+                      >
+                        {processingId === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
+                        ยืนยันรับคืน
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-400 text-xs kanit-regular">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        รับคืนสำเร็จแล้ว
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))}
 
               {filteredRequests.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center text-slate-400 kanit-regular">
+                  <td colSpan={5} className="px-6 py-20 text-center text-slate-400 kanit-regular">
                     <div className="flex flex-col items-center justify-center">
                       <RotateCcw className="w-10 h-10 mb-3 opacity-20" />
-                      <p>ไม่มีประวัติการส่งคืนพัสดุในขณะนี้</p>
+                      <p>
+                        {activeTab === "pending"
+                          ? "ไม่มีคำร้องขอส่งคืนพัสดุในขณะนี้"
+                          : "ไม่มีประวัติการส่งคืนพัสดุในขณะนี้"}
+                      </p>
                     </div>
                   </td>
                 </tr>
