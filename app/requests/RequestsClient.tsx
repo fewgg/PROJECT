@@ -59,7 +59,7 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
   //********************************//
   const countAll = initialRequests.length;
   const countPending = initialRequests.filter(r => r.status === "PENDING").length;
-  const countApproved = initialRequests.filter(r => r.status === "APPROVED").length;
+  const countApproved = initialRequests.filter(r => r.status === "APPROVED" || r.status === "RETURN_PENDING").length;
   const countRejected = initialRequests.filter(r => r.status === "REJECTED").length;
   const countCompleted = initialRequests.filter(r => r.status === "COMPLETED").length;
 
@@ -67,7 +67,9 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
   // กรองรายการคำร้องตามสถานะและคำค้นหา
   //********************************//
   const filteredRequests = initialRequests.filter(req => {
-    const matchStatus = selectedStatus === "ALL" || req.status === selectedStatus;
+    const matchStatus = selectedStatus === "ALL" || 
+      req.status === selectedStatus || 
+      (selectedStatus === "APPROVED" && (req.status === "APPROVED" || req.status === "RETURN_PENDING"));
     const matchSearch = 
       (req.material_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (req.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -238,6 +240,11 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
                         )}
                         ส่งคืนพัสดุ
                       </button>
+                    </div>
+                  )}
+                  {req.status === 'RETURN_PENDING' && (
+                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 kanit-medium text-sm border border-orange-100">
+                      <Clock className="w-4 h-4 mr-1.5 animate-pulse" /> รอแอดมินยืนยันคืน
                     </div>
                   )}
                   {req.status === 'REJECTED' && (

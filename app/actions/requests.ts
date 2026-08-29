@@ -13,7 +13,7 @@ export type Transaction = {
   user_id: string;
   type: "OUTBOUND" | "INBOUND";
   quantity: number;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED" | "RETURN_PENDING";
   remark: string | null;
   department?: string | null;
   created_at: Date;
@@ -282,11 +282,11 @@ export async function returnRequest(transactionId: string) {
     }
 
     await sql.begin(async (sql) => {
-      // ดึงประวัติรายการที่เป็นสถานะ APPROVED
+      // ดึงประวัติรายการที่เป็นสถานะ RETURN_PENDING
       const [tx] = await sql`
-        SELECT * FROM transactions WHERE id = ${transactionId} AND status = 'APPROVED'
+        SELECT * FROM transactions WHERE id = ${transactionId} AND status = 'RETURN_PENDING'
       `;
-      if (!tx) throw new Error("ไม่พบรายการเบิกที่เปิดใช้งานอยู่ หรือ รายการนี้ถูกคืนแล้ว");
+      if (!tx) throw new Error("ไม่พบรายการที่ผู้ใช้แจ้งส่งคืน หรือ รายการนี้ได้รับการยืนยันคืนไปแล้ว");
 
       // อัปเดตสถานะเป็น COMPLETED
       await sql`
@@ -373,26 +373,11 @@ export async function userReturnRequest(transactionId: string) {
     `;
     if (!tx) throw new Error("ไม่พบรายการเบิกที่เปิดใช้งานอยู่ หรือ รายการนี้ถูกคืนแล้ว");
 
-    await sql.begin(async (sql) => {
-      // Update transaction status to COMPLETED
-      await sql`
-        UPDATE transactions SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${transactionId}
-      `;
-
-      // Restore stock to materials table
-      await sql`
-        UPDATE materials 
-        SET quantity = quantity + ${tx.quantity},
-            status = CASE 
-                       WHEN (quantity + ${tx.quantity}) <= 0 THEN 'OUT_OF_STOCK'
-                       WHEN (quantity + ${tx.quantity}) <= 5 THEN 'LOW_STOCK'
-                       ELSE 'AVAILABLE'
-                     END,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${tx.material_id}
-      `;
-    });
+    // Update transaction status to RETURN_PENDING
+    await sql`
+      UPDATE transactions SET status = 'RETURN_PENDING', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${transactionId}
+    `;
 
     revalidatePath("/requests");
     revalidatePath("/admin/requests");

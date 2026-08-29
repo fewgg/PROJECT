@@ -160,6 +160,8 @@ export default function AdminRequestsClient({
         return <span className="px-2.5 py-1 text-xs kanit-medium bg-amber-50 text-amber-600 rounded-full border border-amber-100">รออนุมัติ</span>;
       case "APPROVED":
         return <span className="px-2.5 py-1 text-xs kanit-medium bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">กำลังครอบครอง (เบิกไปแล้ว)</span>;
+      case "RETURN_PENDING":
+        return <span className="px-2.5 py-1 text-xs kanit-medium bg-orange-50 text-orange-600 rounded-full border border-orange-100 animate-pulse">ผู้ใช้แจ้งคืนแล้ว (รอรับคืน)</span>;
       case "REJECTED":
         return <span className="px-2.5 py-1 text-xs kanit-medium bg-rose-50 text-rose-600 rounded-full border border-rose-100">ถูกปฏิเสธ</span>;
       case "COMPLETED":
@@ -313,13 +315,23 @@ export default function AdminRequestsClient({
                         <>
                           {req.status === "APPROVED" && (
                             <button
+                              disabled={true}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 text-slate-400 border border-slate-200 rounded-lg text-xs kanit-medium cursor-not-allowed opacity-60"
+                              title="ผู้ใช้งานยังไม่ได้ส่งคำร้องแจ้งคืนพัสดุในระบบ"
+                            >
+                              <Undo2 className="w-3.5 h-3.5" />
+                              ผู้ใช้ยังไม่คืน
+                            </button>
+                          )}
+                          {req.status === "RETURN_PENDING" && (
+                            <button
                               onClick={() => handleReturn(req.id)}
                               disabled={processingId === req.id}
-                              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all border border-blue-100"
-                              title="รับคืนพัสดุเข้าคลัง"
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all border border-blue-100 cursor-pointer shadow-sm"
+                              title="คลิกยืนยันเพื่อรับพัสดุคืนคลัง"
                             >
                               {processingId === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
-                              รับคืนพัสดุ
+                              ยืนยันรับคืน
                             </button>
                           )}
                           {req.status === "COMPLETED" && (
