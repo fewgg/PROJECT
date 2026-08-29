@@ -9,8 +9,23 @@ export default async function AdminDashboardPage() {
   const totalMaterials = materials.length;
   const lowStockMaterials = materials.filter((m) => m.status === "LOW_STOCK" || m.status === "OUT_OF_STOCK").length;
   
-  // Dummy data for pending requests (To be implemented with real transactions later)
-  const pendingRequests = 5;
+  // Fetch pending requests count dynamically
+  const [pendingRow] = await sql`
+    SELECT COUNT(*)::integer as count 
+    FROM transactions 
+    WHERE type = 'OUTBOUND' AND status = 'PENDING'
+  `;
+  const pendingRequests = pendingRow?.count || 0;
+
+  // Fetch recent pending requests with material names
+  const recentRequests = await sql`
+    SELECT t.id, t.quantity, t.created_at, m.name as material_name, m.unit
+    FROM transactions t
+    JOIN materials m ON t.material_id = m.id
+    WHERE t.type = 'OUTBOUND' AND t.status = 'PENDING'
+    ORDER BY t.created_at DESC
+    LIMIT 3
+  `;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -60,25 +75,40 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-50 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                    <ClipboardList className="w-5 h-5 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="kanit-medium text-sm text-slate-800">REQ-2607{i}</p>
-                    <p className="text-xs text-slate-500 kanit-regular">ขอเบิก กระดาษ A4 (2 รีม) ...</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 kanit-regular">
-                    รออนุมัติ
-                  </span>
-                  <p className="text-xs text-slate-400 kanit-regular mt-1">2 ชม. ที่แล้ว</p>
-                </div>
+            {recentRequests.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 kanit-regular text-sm">
+                ไม่มีคำร้องขอเบิกที่รออนุมัติในขณะนี้
               </div>
-            ))}
+            ) : (
+              recentRequests.map((req) => {
+                const shortId = req.id.substring(0, 8).toUpperCase();
+                const formattedTime = new Date(req.created_at).toLocaleDateString('th-TH', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                return (
+                  <div key={req.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-50 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                        <ClipboardList className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="kanit-medium text-sm text-slate-800">REQ-{shortId}</p>
+                        <p className="text-xs text-slate-500 kanit-regular">ขอเบิก {req.material_name} ({req.quantity} {req.unit || 'ชิ้น'})</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 kanit-regular">
+                        รออนุมัติ
+                      </span>
+                      <p className="text-xs text-slate-400 kanit-regular mt-1">{formattedTime}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
