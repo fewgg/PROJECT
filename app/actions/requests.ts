@@ -22,6 +22,7 @@ export type Transaction = {
   material_name?: string;
   material_image?: string;
   user_name?: string;
+  unit?: string;
 };
 
 // Create a new material request (user)
@@ -336,8 +337,10 @@ export async function getReturnRequests() {
       SELECT t.*, m.name as material_name, m.image as material_image, m.unit
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
-      WHERE t.type = 'OUTBOUND' AND t.status = 'COMPLETED'
-      ORDER BY t.updated_at DESC
+      WHERE t.type = 'OUTBOUND' AND t.status IN ('RETURN_PENDING', 'COMPLETED')
+      ORDER BY 
+        CASE WHEN t.status = 'RETURN_PENDING' THEN 1 ELSE 2 END,
+        t.updated_at DESC
     `;
 
     if (transactions.length === 0) return [];
