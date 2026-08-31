@@ -2,15 +2,43 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, RotateCcw, Calendar, User, Building, Package, Undo2, Loader2, CheckCircle2, History, X, XCircle } from "lucide-react";
+import { Search, RotateCcw, Calendar, User, Building, Package, Undo2, Loader2, CheckCircle2, History, X, XCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { returnRequest, rejectReturnRequest } from "@/app/actions/requests";
+import { toggleUserSuspension } from "@/app/actions/user";
+
+const checkOverdue = (dueDateStr?: string | null) => {
+  if (!dueDateStr) return { isOverdue: false, label: "" };
+  const dueDate = new Date(dueDateStr);
+  const now = new Date();
+  const isOverdue = now > dueDate;
+  const diffTime = Math.abs(now.getTime() - dueDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (isOverdue) {
+    return { isOverdue: true, label: `เลยกำหนดคืน ${diffDays} วัน` };
+  }
+  return { isOverdue: false, label: `เหลืออีก ${diffDays} วัน` };
+};
 
 export default function AdminReturnsClient({ returnRequests }: { returnRequests: any[] }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"pending" | "completed">("pending");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [suspendingId, setSuspendingId] = useState<string | null>(null);
+
+  const handleToggleSuspension = async (userId: string, isCurrentlySuspended: boolean) => {
+    setSuspendingId(userId);
+    const res = await toggleUserSuspension(userId, !isCurrentlySuspended);
+    if (res.success) {
+      toast.success(isCurrentlySuspended ? "ปลดระงับสิทธิ์การเบิกสำเร็จ" : "ระงับสิทธิ์การเบิกสำเร็จ");
+      router.refresh();
+    } else {
+      toast.error(res.error || "เกิดข้อผิดพลาด");
+    }
+    setSuspendingId(null);
+  };
 
   // Filter and counts
   const countPending = returnRequests.filter((r) => r.status === "RETURN_PENDING").length;
@@ -137,6 +165,30 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                             <Building className="w-3 h-3" /> {req.department}
                           </span>
                         )}
+                        <div className="flex items-center gap-2 mt-1">
+                          {req.is_suspended && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 text-[10px] kanit-semibold border border-rose-100">
+                              <ShieldAlert className="w-2.5 h-2.5" /> ระงับสิทธิ์แล้ว
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleToggleSuspension(req.user_id, !!req.is_suspended)}
+                            disabled={suspendingId === req.user_id}
+                            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] kanit-medium transition-all border cursor-pointer hover:shadow-sm ${
+                              req.is_suspended 
+                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border-emerald-200' 
+                                : 'bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border-amber-200'
+                            }`}
+                          >
+                            {suspendingId === req.user_id ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : req.is_suspended ? (
+                              'ปลดระงับ'
+                            ) : (
+                              'ระงับสิทธิ์'
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -156,6 +208,23 @@ export default function AdminReturnsClient({ returnRequests }: { returnRequests:
                         <p className="text-xs text-slate-500 kanit-regular mt-0.5">
                           จำนวน: <strong className="text-slate-800">{req.quantity}</strong> {req.unit || 'ชิ้น'}
                         </p>
+                        {req.borrow_duration_days && (
+                          <p className="text-[10px] text-blue-600 kanit-medium mt-0.5">
+                            ระยะเวลาขอยืม: {req.borrow_duration_days} วัน
+                          </p>
+                        )}
+                        {req.due_date && req.status === 'RETURN_PENDING' && (() => {
+                          const overdueInfo = checkOverdue(req.due_date);
+                          return (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium kanit-medium mt-1 ${
+                              overdueInfo.isOverdue 
+                                ? 'bg-rose-50 text-rose-700 border border-rose-100' 
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            }`}>
+                              {overdueInfo.label}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </td>

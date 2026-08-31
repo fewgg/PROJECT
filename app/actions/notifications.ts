@@ -64,6 +64,25 @@ export async function getNotifications(): Promise<NotificationType[]> {
           });
         }
       }
+
+      // 3. Check overdue items across the system for admin
+      const adminOverdueTx = await sql`
+        SELECT COUNT(*) as count 
+        FROM transactions 
+        WHERE status IN ('APPROVED', 'RETURN_REJECTED') 
+        AND due_date < NOW()
+      `;
+      const adminOverdueCount = parseInt(adminOverdueTx[0].count, 10);
+      if (adminOverdueCount > 0) {
+        notifications.push({
+          id: 'admin-overdue',
+          title: 'มีพัสดุเลยกำหนดคืน',
+          message: `มีพัสดุเลยกำหนดส่งคืนจำนวน ${adminOverdueCount} รายการที่ยังไม่ส่งคืน`,
+          type: 'warning',
+          time: 'ทวงของ',
+          link: '/admin/returns'
+        });
+      }
     }
     
     // For everyone (including admins): Check recently processed requests (APPROVED/REJECTED) within last 3 days
@@ -96,6 +115,28 @@ export async function getNotifications(): Promise<NotificationType[]> {
           link: '/requests'
         });
       }
+    }
+
+    // Check if the user has any overdue borrowed items
+    const overdueTx = await sql`
+      SELECT t.id, m.name, t.due_date 
+      FROM transactions t
+      JOIN materials m ON t.material_id = m.id
+      WHERE t.user_id = ${userId} 
+      AND t.status IN ('APPROVED', 'RETURN_REJECTED')
+      AND t.due_date < NOW()
+      ORDER BY t.due_date ASC
+    `;
+
+    for (const tx of overdueTx) {
+      notifications.push({
+        id: `overdue-${tx.id}`,
+        title: 'เลยกำหนดคืนพัสดุ!',
+        message: `พัสดุ "${tx.name}" เลยกำหนดคืนแล้วตั้งแต่เมื่อวันที่ ${new Date(tx.due_date).toLocaleDateString('th-TH')}`,
+        type: 'error',
+        time: 'เกินกำหนด',
+        link: '/requests'
+      });
     }
     
     return notifications;

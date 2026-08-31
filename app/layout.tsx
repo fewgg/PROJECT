@@ -37,6 +37,7 @@ export default async function RootLayout({
 }>) {
   const user = await currentUser();
   const isAdmin = user?.publicMetadata?.role === "admin";
+  const isSuspended = user?.publicMetadata?.isSuspended === true;
   const settings = await getSystemSettings();
 
   return (
@@ -102,6 +103,13 @@ export default async function RootLayout({
                     )}
                   </div>
                 </header>
+                
+                {/* Suspension Warning Banner */}
+                {isSuspended && !isAdmin && (
+                  <div className="bg-rose-600 text-white py-3 px-6 text-center kanit-semibold text-sm animate-pulse sticky top-[72px] z-40 shadow-md">
+                    ⚠️ บัญชีของคุณถูกระงับสิทธิ์การเบิกพัสดุชั่วคราว เนื่องจากมีพัสดุเลยกำหนดส่งคืน กรุณานำพัสดุมาส่งคืนที่ห้องพัสดุเพื่อปลดระงับสิทธิ์
+                  </div>
+                )}
                 
                 <main className="flex-1 w-full max-w-[1440px] mx-auto">
                   {children}

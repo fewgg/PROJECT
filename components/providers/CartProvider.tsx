@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export interface CartItem extends ProductCardProps {
   requestQuantity: number;
+  borrowDurationDays?: number;
 }
 
 interface CartContextType {
@@ -15,6 +16,7 @@ interface CartContextType {
   addToCart: (product: ProductCardProps) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, delta: number) => void;
+  updateBorrowDuration: (id: string, days: number) => void;
   clearCart: () => void;
 }
 
@@ -34,7 +36,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             : item
         );
       }
-      return [...prev, { ...product, requestQuantity: 1 }];
+      return [...prev, { ...product, requestQuantity: 1, borrowDurationDays: product.requires_return !== false ? 7 : undefined }];
     });
     setIsCartOpen(true); // Auto open cart to show feedback
     toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
@@ -56,6 +58,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const updateBorrowDuration = (id: string, days: number) => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, borrowDurationDays: days } : item
+      )
+    );
+  };
+
   const clearCart = () => setCartItems([]);
 
   return (
@@ -67,6 +77,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addToCart,
         removeFromCart,
         updateQuantity,
+        updateBorrowDuration,
         clearCart,
       }}
     >

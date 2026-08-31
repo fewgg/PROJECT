@@ -16,6 +16,7 @@ export type Category = {
   id: string;
   name: string;
   created_at?: Date | string;
+  requires_return: boolean;
 };
 
 //********************************//
@@ -23,12 +24,13 @@ export type Category = {
 //********************************//
 export async function getCategories(): Promise<Category[]> {
   try {
-    const categories = await sql<Category[]>`
-      SELECT id, name, created_at FROM categories ORDER BY name ASC
+    const categories = await sql<any[]>`
+      SELECT id, name, requires_return, created_at FROM categories ORDER BY name ASC
     `;
     return categories.map(c => ({
       id: String(c.id),
       name: String(c.name),
+      requires_return: c.requires_return !== false,
       created_at: c.created_at ? new Date(c.created_at).toISOString() : undefined
     }));
   } catch (error) {
@@ -40,7 +42,7 @@ export async function getCategories(): Promise<Category[]> {
 //********************************//
 // เพิ่มหมวดหมู่พัสดุใหม่ (Add Category - Admin)
 //********************************//
-export async function addCategory(name: string) {
+export async function addCategory(name: string, requires_return: boolean = false) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -52,7 +54,7 @@ export async function addCategory(name: string) {
     }
 
     await sql`
-      INSERT INTO categories (name) VALUES (${name})
+      INSERT INTO categories (name, requires_return) VALUES (${name}, ${requires_return})
     `;
     
     revalidatePath("/admin/categories");
@@ -70,7 +72,7 @@ export async function addCategory(name: string) {
 //********************************//
 // แก้ไขหมวดหมู่พัสดุ (Update Category - Admin)
 //********************************//
-export async function updateCategory(id: string, name: string) {
+export async function updateCategory(id: string, name: string, requires_return: boolean) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -86,10 +88,10 @@ export async function updateCategory(id: string, name: string) {
     const [oldCat] = await sql`SELECT name FROM categories WHERE id = ${id}`;
     
     await sql.begin(async (sql) => {
-      await sql`UPDATE categories SET name = ${name} WHERE id = ${id}`;
+      await sql`UPDATE categories SET name = ${name}, requires_return = ${requires_return} WHERE id = ${id}`;
       
       if (oldCat) {
-        await sql`UPDATE materials SET category = ${name} WHERE category = ${oldCat.name}`;
+        await sql`UPDATE materials SET category = ${name}, requires_return = ${requires_return} WHERE category = ${oldCat.name}`;
       }
     });
     

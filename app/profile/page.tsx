@@ -1,9 +1,12 @@
 import { currentUser } from "@clerk/nextjs/server";
 import ProfileClient from "./ProfileClient";
+import { getFavoriteMaterials } from "@/app/actions/favorites";
 
 export default async function ProfilePage() {
   const user = await currentUser();
   const department = (user?.publicMetadata?.department as string) || "";
+  const favorites = await getFavoriteMaterials();
+  const serializedFavorites = JSON.parse(JSON.stringify(favorites));
 
   return (
     <div className="w-full max-w-4xl mx-auto py-12 px-4 space-y-12 animate-in fade-in duration-500">
@@ -14,7 +17,7 @@ export default async function ProfilePage() {
 
       <div className="space-y-8">
         <section>
-          <ProfileClient department={department} />
+          <ProfileClient department={department} favorites={serializedFavorites} />
         </section>
       </div>
     </div>

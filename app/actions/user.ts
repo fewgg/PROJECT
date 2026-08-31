@@ -50,3 +50,30 @@ export async function updateUserDepartment(department: string) {
   revalidatePath("/profile");
   return { success: true };
 }
+
+export async function toggleUserSuspension(targetUserId: string, suspend: boolean) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const currentUserObj = await client.users.getUser(userId);
+    if (currentUserObj.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    await client.users.updateUserMetadata(targetUserId, {
+      publicMetadata: {
+        isSuspended: suspend
+      }
+    });
+
+    revalidatePath("/admin/returns");
+    revalidatePath(`/admin/users/${targetUserId}`);
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error toggling user suspension:", error);
+    return { success: false, error: error.message || "Failed to toggle user suspension" };
+  }
+}

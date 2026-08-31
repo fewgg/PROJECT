@@ -8,7 +8,7 @@ import { ProductCard, ProductCardProps } from "@/components/ui-custom/ProductCar
 import { Material } from "@/app/actions/materials";
 import { Category } from "@/app/actions/categories";
 
-export default function InventoryClient({ initialData, categories = [] }: { initialData: Material[]; categories?: Category[] }) {
+export default function InventoryClient({ initialData, categories = [], favoriteIds = [] }: { initialData: Material[]; categories?: Category[]; favoriteIds?: string[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const defaultQuery = searchParams.get("q") || "";
@@ -149,7 +149,7 @@ export default function InventoryClient({ initialData, categories = [] }: { init
               transition={{ duration: 0.2 }}
               key={item.id}
             >
-              <ProductCard {...item as ProductCardProps} />
+              <ProductCard {...item as ProductCardProps} isFavorited={favoriteIds.includes(item.id)} />
             </motion.div>
           ))}
           {filteredData.length === 0 && (

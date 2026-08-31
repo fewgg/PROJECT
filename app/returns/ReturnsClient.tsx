@@ -20,6 +20,32 @@ type Transaction = {
   material_name?: string;
   material_image?: string;
   requires_return?: boolean;
+  borrow_duration_days?: number | null;
+  due_date?: string | null;
+  is_suspended?: boolean;
+};
+
+const checkOverdue = (dueDateStr?: string | null) => {
+  if (!dueDateStr) return { isOverdue: false, text: "", colorClass: "text-slate-500" };
+  const dueDate = new Date(dueDateStr);
+  const now = new Date();
+  const diffTime = dueDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffTime < 0) {
+    const overdueDays = Math.abs(diffDays);
+    return {
+      isOverdue: true,
+      text: `เลยกำหนดส่งคืนมาแล้ว ${overdueDays} วัน`,
+      colorClass: "text-rose-600 font-semibold"
+    };
+  } else {
+    return {
+      isOverdue: false,
+      text: `ครบกำหนดวันที่ ${dueDate.toLocaleDateString('th-TH')} (เหลืออีก ${diffDays} วัน)`,
+      colorClass: "text-emerald-600 font-medium"
+    };
+  }
 };
 
 export default function ReturnsClient({ initialRequests }: { initialRequests: Transaction[] }) {
@@ -201,21 +227,33 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
                       <CheckCircle className="w-4 h-4 mr-1.5" /> คืนพัสดุแล้ว
                     </div>
                   )}
-                  {req.status === 'RETURN_REJECTED' && (
-                    <div className="flex flex-col items-end gap-1.5">
-                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-rose-50 text-rose-600 kanit-medium text-sm border border-rose-100">
-                        <XCircle className="w-4 h-4 mr-1.5" /> ถูกปฏิเสธการคืน
+                  {req.status === 'RETURN_REJECTED' && (() => {
+                    const overdueInfo = checkOverdue(req.due_date);
+                    return (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-rose-50 text-rose-600 kanit-medium text-sm border border-rose-100">
+                          <XCircle className="w-4 h-4 mr-1.5" /> ถูกปฏิเสธการคืน {overdueInfo.isOverdue && "(เลยกำหนดคืน)"}
+                        </div>
+                        {req.due_date && (
+                          <span className={`text-[11px] kanit-regular ${overdueInfo.colorClass}`}>
+                            {overdueInfo.text}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleRetryReturn(req.id)}
+                          disabled={submittingId === req.id}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all shadow-sm cursor-pointer ${
+                            overdueInfo.isOverdue 
+                              ? 'bg-rose-600 text-white hover:bg-rose-700 animate-bounce' 
+                              : 'bg-slate-900 text-white hover:bg-slate-800'
+                          }`}
+                        >
+                          {submittingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Undo2 className="w-3 h-3" />}
+                          ส่งคืนพัสดุอีกครั้ง
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleRetryReturn(req.id)}
-                        disabled={submittingId === req.id}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all shadow-sm cursor-pointer"
-                      >
-                        {submittingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Undo2 className="w-3 h-3" />}
-                        ส่งคืนพัสดุอีกครั้ง
-                      </button>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             </div>

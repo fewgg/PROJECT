@@ -358,40 +358,6 @@ export default function AdminMaterialsClient({
               </div>
 
               <div>
-                <label className="block text-sm kanit-medium text-slate-700 mb-1.5">ประเภทการคืนพัสดุ</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${
-                    formData.requires_return !== false
-                      ? "border-blue-500 bg-blue-50/50 text-blue-700"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="requires_return"
-                      checked={formData.requires_return !== false}
-                      onChange={() => setFormData({ ...formData, requires_return: true })}
-                      className="sr-only"
-                    />
-                    <span className="text-xs kanit-medium">ต้องคืน (ทรัพย์สินคงทนถาวร)</span>
-                  </label>
-                  <label className={`flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${
-                    formData.requires_return === false
-                      ? "border-orange-500 bg-orange-50/50 text-orange-700"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="requires_return"
-                      checked={formData.requires_return === false}
-                      onChange={() => setFormData({ ...formData, requires_return: false })}
-                      className="sr-only"
-                    />
-                    <span className="text-xs kanit-medium">ไม่ต้องคืน (สิ้นเปลือง/คงทนอายุสั้น)</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
                 <label className="block text-sm kanit-medium text-slate-700 mb-1">อัปโหลดรูปภาพ</label>
                 <div className="flex items-center gap-4 mt-2">
                   {(selectedFile || formData.image) && (

@@ -10,17 +10,20 @@ export default function AdminCategoriesClient({ initialCategories }: { initialCa
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categoryName, setCategoryName] = useState("");
+  const [requiresReturn, setRequiresReturn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const openAddModal = () => {
     setEditingId(null);
     setCategoryName("");
+    setRequiresReturn(false);
     setIsModalOpen(true);
   };
 
   const openEditModal = (cat: Category) => {
     setEditingId(cat.id);
     setCategoryName(cat.name);
+    setRequiresReturn(cat.requires_return);
     setIsModalOpen(true);
   };
 
@@ -31,16 +34,16 @@ export default function AdminCategoriesClient({ initialCategories }: { initialCa
     setIsSubmitting(true);
     
     if (editingId) {
-      const res = await updateCategory(editingId, categoryName.trim());
+      const res = await updateCategory(editingId, categoryName.trim(), requiresReturn);
       if (res.success) {
-        setCategories(categories.map(c => c.id === editingId ? { ...c, name: categoryName.trim() } : c));
+        setCategories(categories.map(c => c.id === editingId ? { ...c, name: categoryName.trim(), requires_return: requiresReturn } : c));
         toast.success("แก้ไขหมวดหมู่เรียบร้อย");
         setIsModalOpen(false);
       } else {
         toast.error("เกิดข้อผิดพลาด: " + res.error);
       }
     } else {
-      const res = await addCategory(categoryName.trim());
+      const res = await addCategory(categoryName.trim(), requiresReturn);
       if (res.success) {
         toast.success("เพิ่มหมวดหมู่ใหม่เรียบร้อย");
         setIsModalOpen(false);
@@ -88,8 +91,17 @@ export default function AdminCategoriesClient({ initialCategories }: { initialCa
           <tbody className="divide-y divide-slate-100">
             {categories.map((cat) => (
               <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 kanit-medium text-sm text-slate-800">
-                  {cat.name}
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="kanit-medium text-sm text-slate-800">{cat.name}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium kanit-medium ${
+                      cat.requires_return !== false
+                        ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                        : 'bg-orange-50 text-orange-700 border border-orange-100'
+                    }`}>
+                      {cat.requires_return !== false ? 'ต้องคืน (ทรัพย์สินคงทนถาวร)' : 'ไม่ต้องคืน (สิ้นเปลือง/คงทนอายุสั้น)'}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
@@ -138,6 +150,18 @@ export default function AdminCategoriesClient({ initialCategories }: { initialCa
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" 
                   placeholder="เช่น เครื่องเขียน, อุปกรณ์คอมพิวเตอร์"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm kanit-medium text-slate-700 mb-1">ประเภทพัสดุในหมวดหมู่นี้</label>
+                <select
+                  value={requiresReturn ? "true" : "false"}
+                  onChange={e => setRequiresReturn(e.target.value === "true")}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  <option value="false">ไม่ต้องคืน (สิ้นเปลือง/คงทนอายุสั้น)</option>
+                  <option value="true">ต้องคืน (ทรัพย์สินคงทนถาวร)</option>
+                </select>
               </div>
 
               <div className="pt-4 flex justify-end gap-3">

@@ -1,12 +1,13 @@
 "use client";
 
 import { UserProfile } from "@clerk/nextjs";
-import { Camera, Building2 } from "lucide-react";
+import { Camera, Building2, Heart } from "lucide-react";
 import { ProfileImageUpload } from "@/components/ui-custom/ProfileImageUpload";
 import { AvatarPreviewModal } from "@/components/ui-custom/AvatarPreviewModal";
 import ProfileDepartmentClient from "./ProfileDepartmentClient";
+import ProfileFavoritesClient from "./ProfileFavoritesClient";
 
-export default function ProfileClient({ department }: { department: string }) {
+export default function ProfileClient({ department, favorites = [] }: { department: string; favorites?: any[] }) {
   return (
     <>
       {/* ******************************** */}
@@ -83,6 +84,10 @@ export default function ProfileClient({ department }: { department: string }) {
             </h2>
             <ProfileDepartmentClient initialDepartment={department} />
           </div>
+        </UserProfile.Page>
+
+        <UserProfile.Page label="รายการโปรด (พัสดุ)" labelIcon={<Heart className="w-4 h-4" />} url="favorites">
+          <ProfileFavoritesClient initialFavorites={favorites} />
         </UserProfile.Page>
       </UserProfile>
     </>

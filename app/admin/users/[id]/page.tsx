@@ -1,6 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { User, Mail, Calendar, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { SuspendUserButton } from "@/components/ui-custom/SuspendUserButton";
 
 export default async function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   try {
@@ -67,6 +68,13 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
                 </p>
               </div>
             </div>
+
+            {/* Action buttons (only show suspension toggle for non-admin users) */}
+            {role !== 'admin' && (
+              <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3">
+                <SuspendUserButton userId={id} isCurrentlySuspended={user.publicMetadata?.isSuspended === true} />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -7,11 +7,14 @@ import { createRequest } from "@/app/actions/requests";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
 export function RequisitionCart() {
-  const { cartItems, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cartItems, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, updateBorrowDuration, clearCart } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [remark, setRemark] = useState("");
+  const { user } = useUser();
+  const isSuspended = user?.publicMetadata?.isSuspended === true;
 
   const totalItems = cartItems.reduce((acc, item) => acc + item.requestQuantity, 0);
 
@@ -19,7 +22,7 @@ export function RequisitionCart() {
     setIsSubmitting(true);
     let allSuccess = true;
     for (const item of cartItems) {
-      const res = await createRequest(item.id, item.requestQuantity, remark);
+      const res = await createRequest(item.id, item.requestQuantity, remark, item.borrowDurationDays || 7);
       if (!res.success) {
         allSuccess = false;
         toast.error(`ไม่สามารถเบิก ${item.name} ได้`);
@@ -119,22 +122,42 @@ export function RequisitionCart() {
                             คงเหลือ {item.quantity} {item.unit}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3 mt-2">
-                          <button 
-                            onClick={() => updateQuantity(item.id, -1)}
-                            disabled={item.requestQuantity <= 1}
-                            className="p-1 rounded-md hover:bg-white text-slate-500 border border-transparent hover:border-slate-200 disabled:opacity-50 transition-colors"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="kanit-semibold text-sm w-4 text-center">{item.requestQuantity}</span>
-                          <button 
-                            onClick={() => updateQuantity(item.id, 1)}
-                            disabled={item.requestQuantity >= item.quantity}
-                            className="p-1 rounded-md hover:bg-white text-slate-500 border border-transparent hover:border-slate-200 disabled:opacity-50 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                        <div className="flex flex-col gap-2 mt-2">
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => updateQuantity(item.id, -1)}
+                              disabled={item.requestQuantity <= 1}
+                              className="p-1 rounded-md hover:bg-white text-slate-500 border border-transparent hover:border-slate-200 disabled:opacity-50 transition-colors"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="kanit-semibold text-sm w-4 text-center">{item.requestQuantity}</span>
+                            <button 
+                              onClick={() => updateQuantity(item.id, 1)}
+                              disabled={item.requestQuantity >= item.quantity}
+                              className="p-1 rounded-md hover:bg-white text-slate-500 border border-transparent hover:border-slate-200 disabled:opacity-50 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          {item.requires_return !== false && (
+                            <div className="flex items-center gap-2 mt-1 bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
+                              <span className="text-[11px] kanit-medium text-blue-700">ระยะเวลาขอยืม:</span>
+                              <input 
+                                type="number" 
+                                min={1}
+                                max={365}
+                                value={item.borrowDurationDays || 7} 
+                                onChange={e => {
+                                  const val = Math.max(1, parseInt(e.target.value) || 1);
+                                  updateBorrowDuration(item.id, val);
+                                }}
+                                className="w-12 px-1.5 py-0.5 text-center text-xs kanit-semibold bg-white border border-slate-200 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                              />
+                              <span className="text-[11px] kanit-medium text-blue-700">วัน</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -155,6 +178,11 @@ export function RequisitionCart() {
                     className="w-full px-4 py-2 text-sm bg-white border border-slate-200 rounded-xl kanit-regular outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
+                {isSuspended && (
+                  <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 mb-4 text-xs kanit-medium text-rose-600">
+                    ⚠️ สิทธิ์การเบิกของคุณถูกระงับชั่วคราว เนื่องจากมีพัสดุเลยกำหนดส่งคืน กรุณาคืนของที่ห้องพัสดุก่อนทำรายการใหม่
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-4 kanit-medium">
                   <span className="text-slate-500">รวมจำนวนพัสดุที่ขอเบิก</span>
                   <span className="text-xl text-slate-800">{totalItems} <span className="text-sm font-normal text-slate-500">ชิ้น</span></span>
@@ -169,8 +197,12 @@ export function RequisitionCart() {
                   </button>
                   <button 
                     onClick={handleCheckout}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3 flex items-center justify-center gap-2 rounded-full kanit-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                    disabled={isSubmitting || isSuspended}
+                    className={`flex-1 py-3 flex items-center justify-center gap-2 rounded-full kanit-medium text-white shadow-md transition-all ${
+                      isSuspended
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                        : "bg-blue-600 hover:bg-blue-700 hover:-translate-y-0.5 shadow-blue-500/20"
+                    }`}
                   >
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "ยืนยันการขอเบิก"}
                   </button>

@@ -24,10 +24,13 @@ export type Transaction = {
   user_name?: string;
   unit?: string;
   requires_return?: boolean;
+  borrow_duration_days?: number | null;
+  due_date?: Date | string | null;
+  is_suspended?: boolean;
 };
 
 // Create a new material request (user)
-export async function createRequest(materialId: string, quantity: number, remark?: string) {
+export async function createRequest(materialId: string, quantity: number, remark?: string, borrowDurationDays?: number) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -35,6 +38,17 @@ export async function createRequest(materialId: string, quantity: number, remark
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
     const department = (user.publicMetadata?.department as string) || null;
+
+    if (user.publicMetadata?.isSuspended === true) {
+      return { success: false, error: "คุณถูกระงับสิทธิ์การเบิกพัสดุชั่วคราวเนื่องจากมีพัสดุเลยกำหนดส่งคืน" };
+    }
+
+    // Check if the material requires return
+    const [materialRow] = await sql`
+      SELECT requires_return, quantity FROM materials WHERE id = ${materialId} LIMIT 1
+    `;
+    const requiresReturn = materialRow ? materialRow.requires_return : false;
+    const duration = requiresReturn ? (borrowDurationDays || 7) : null;
 
     // Check if auto-approve is enabled for small requests (quantity <= 1)
     let shouldAutoApprove = false;
@@ -52,23 +66,21 @@ export async function createRequest(materialId: string, quantity: number, remark
     }
 
     if (shouldAutoApprove) {
-      // Verify stock is sufficient before auto-approving
-      const [material] = await sql`
-        SELECT quantity FROM materials WHERE id = ${materialId}
-      `;
+      const availableStock = materialRow ? Number(materialRow.quantity) : 0;
       
-      if (!material || material.quantity < quantity) {
+      if (!materialRow || availableStock < quantity) {
         // Fall back to PENDING if stock is insufficient
         await sql`
-          INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
-          VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department})
+          INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department, borrow_duration_days, due_date)
+          VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department}, ${duration}, null)
         `;
       } else {
+        const dueDate = duration ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000) : null;
         await sql.begin(async (sql) => {
           // 1. Insert transaction as APPROVED
           await sql`
-            INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
-            VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'APPROVED', ${remark || null}, ${department})
+            INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department, borrow_duration_days, due_date)
+            VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'APPROVED', ${remark || null}, ${department}, ${duration}, ${dueDate})
           `;
           
           // 2. Deduct quantity from materials table
@@ -87,8 +99,8 @@ export async function createRequest(materialId: string, quantity: number, remark
       }
     } else {
       await sql`
-        INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department)
-        VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department})
+        INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department, borrow_duration_days, due_date)
+        VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department}, ${duration}, null)
       `;
     }
     
@@ -132,7 +144,12 @@ export async function getPendingRequests() {
       return {
         ...t,
         user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress) : "Unknown User",
-        requires_return: t.requires_return !== false
+        requires_return: t.requires_return !== false,
+        borrow_duration_days: t.borrow_duration_days ? Number(t.borrow_duration_days) : null,
+        due_date: t.due_date ? new Date(t.due_date).toISOString() : null,
+        created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
+        updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
+        is_suspended: u ? u.publicMetadata?.isSuspended === true : false,
       };
     });
   } catch (error) {
@@ -159,11 +176,24 @@ export async function updateRequestStatus(transactionId: string, newStatus: "APP
       `;
       if (!tx) throw new Error("Transaction not found or already processed");
 
-      // Update transaction status
-      await sql`
-        UPDATE transactions SET status = ${newStatus}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${transactionId}
-      `;
+      // Update transaction status and due_date
+      if (newStatus === "APPROVED") {
+        await sql`
+          UPDATE transactions SET 
+            status = ${newStatus}, 
+            due_date = CASE 
+                         WHEN borrow_duration_days IS NOT NULL THEN CURRENT_TIMESTAMP + (borrow_duration_days || ' day')::INTERVAL 
+                         ELSE NULL 
+                       END,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${transactionId}
+        `;
+      } else {
+        await sql`
+          UPDATE transactions SET status = ${newStatus}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${transactionId}
+        `;
+      }
 
       // If approved, deduct material quantity
       if (newStatus === "APPROVED") {
@@ -221,7 +251,9 @@ export async function getUserRequests() {
       updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
       material_name: String(t.material_name || ''),
       material_image: String(t.material_image || ''),
-      requires_return: t.requires_return !== false
+      requires_return: t.requires_return !== false,
+      borrow_duration_days: t.borrow_duration_days ? Number(t.borrow_duration_days) : null,
+      due_date: t.due_date ? new Date(t.due_date).toISOString() : null
     }));
   } catch (error) {
     console.error("Error fetching user requests:", error);
@@ -243,8 +275,8 @@ export async function getAllRequests() {
       throw new Error("Unauthorized");
     }
 
-    const transactions = await sql<Transaction[]>`
-      SELECT t.*, m.name as material_name, m.image as material_image 
+    const transactions = await sql<any[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image, m.requires_return 
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
       WHERE t.type = 'OUTBOUND'
@@ -262,7 +294,13 @@ export async function getAllRequests() {
       const u = users.data.find(user => user.id === t.user_id);
       return {
         ...t,
-        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User"
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User",
+        requires_return: t.requires_return !== false,
+        borrow_duration_days: t.borrow_duration_days ? Number(t.borrow_duration_days) : null,
+        due_date: t.due_date ? new Date(t.due_date).toISOString() : null,
+        created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
+        updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
+        is_suspended: u ? u.publicMetadata?.isSuspended === true : false,
       };
     });
   } catch (error) {
@@ -362,7 +400,12 @@ export async function getReturnRequests() {
       return {
         ...t,
         user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User",
-        requires_return: t.requires_return !== false
+        requires_return: t.requires_return !== false,
+        borrow_duration_days: t.borrow_duration_days ? Number(t.borrow_duration_days) : null,
+        due_date: t.due_date ? new Date(t.due_date).toISOString() : null,
+        created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
+        updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
+        is_suspended: u ? u.publicMetadata?.isSuspended === true : false,
       };
     });
   } catch (error) {
@@ -435,5 +478,54 @@ export async function rejectReturnRequest(transactionId: string, remark?: string
   } catch (error: any) {
     console.error("Error in rejectReturnRequest:", error);
     return { success: false, error: error.message || "Failed to reject return request" };
+  }
+}
+
+export async function getActiveBorrows() {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    if (user.publicMetadata?.role !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    // Get active borrows (APPROVED or RETURN_REJECTED) that require return
+    const transactions = await sql<any[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image, m.unit, m.requires_return
+      FROM transactions t
+      JOIN materials m ON t.material_id = m.id
+      WHERE t.type = 'OUTBOUND' 
+      AND t.status IN ('APPROVED', 'RETURN_REJECTED')
+      AND m.requires_return = TRUE
+      ORDER BY 
+        CASE WHEN t.due_date < NOW() THEN 1 ELSE 2 END,
+        t.due_date ASC
+    `;
+
+    if (transactions.length === 0) return [];
+
+    const users = await client.users.getUserList({
+      userId: transactions.map(t => t.user_id)
+    });
+
+    return transactions.map(t => {
+      const u = users.data.find(user => user.id === t.user_id);
+      return {
+        ...t,
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User",
+        requires_return: t.requires_return !== false,
+        borrow_duration_days: t.borrow_duration_days ? Number(t.borrow_duration_days) : null,
+        due_date: t.due_date ? new Date(t.due_date).toISOString() : null,
+        created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
+        updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
+        is_suspended: u ? u.publicMetadata?.isSuspended === true : false,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching active borrows for admin:", error);
+    return [];
   }
 }

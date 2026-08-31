@@ -101,6 +101,12 @@ export async function getMaterialById(id: string) {
 //********************************//
 export async function addMaterial(data: Omit<Material, "id">) {
   try {
+    // Lookup requires_return from categories table based on data.category
+    const [categoryRow] = await sql`
+      SELECT requires_return FROM categories WHERE name = ${data.category} LIMIT 1
+    `;
+    const requires_return = categoryRow ? categoryRow.requires_return : false;
+
     // Generate a random ID (e.g. cus-123)
     const id = `${data.category === 'พัสดุสำนักงาน' ? 'off' : 'item'}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
@@ -112,7 +118,7 @@ export async function addMaterial(data: Omit<Material, "id">) {
           WHEN ${data.quantity} <= 5 THEN 'LOW_STOCK'
           ELSE 'AVAILABLE'
         END, 
-        ${data.unit}, ${data.category}, ${data.requires_return})
+        ${data.unit}, ${data.category}, ${requires_return})
     `;
     
     revalidatePath("/admin/materials");
@@ -130,6 +136,17 @@ export async function addMaterial(data: Omit<Material, "id">) {
 //********************************//
 export async function updateMaterial(id: string, data: Partial<Material>) {
   try {
+    let requires_return = undefined;
+    if (data.category) {
+      // Lookup requires_return from categories table based on data.category
+      const [categoryRow] = await sql`
+        SELECT requires_return FROM categories WHERE name = ${data.category} LIMIT 1
+      `;
+      if (categoryRow) {
+        requires_return = categoryRow.requires_return;
+      }
+    }
+
     await sql`
       UPDATE materials SET 
         name = ${data.name ?? sql`name`},
@@ -142,7 +159,7 @@ export async function updateMaterial(id: string, data: Partial<Material>) {
                  END,
         unit = ${data.unit ?? sql`unit`},
         category = ${data.category ?? sql`category`},
-        requires_return = ${data.requires_return !== undefined ? data.requires_return : sql`requires_return`},
+        requires_return = ${requires_return !== undefined ? requires_return : (data.requires_return !== undefined ? data.requires_return : sql`requires_return`)},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
     `;

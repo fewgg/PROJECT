@@ -23,6 +23,32 @@ type Transaction = {
   material_name?: string;
   material_image?: string;
   requires_return?: boolean;
+  borrow_duration_days?: number | null;
+  due_date?: string | null;
+  is_suspended?: boolean;
+};
+
+const checkOverdue = (dueDateStr?: string | null) => {
+  if (!dueDateStr) return { isOverdue: false, text: "", colorClass: "text-slate-500" };
+  const dueDate = new Date(dueDateStr);
+  const now = new Date();
+  const diffTime = dueDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffTime < 0) {
+    const overdueDays = Math.abs(diffDays);
+    return {
+      isOverdue: true,
+      text: `เลยกำหนดส่งคืนมาแล้ว ${overdueDays} วัน`,
+      colorClass: "text-rose-600 font-semibold"
+    };
+  } else {
+    return {
+      isOverdue: false,
+      text: `ครบกำหนดวันที่ ${dueDate.toLocaleDateString('th-TH')} (เหลืออีก ${diffDays} วัน)`,
+      colorClass: "text-emerald-600 font-medium"
+    };
+  }
 };
 
 //********************************//
@@ -219,27 +245,45 @@ export default function RequestsClient({ initialRequests }: { initialRequests: T
                       <Clock className="w-4 h-4 mr-1.5" /> รออนุมัติ
                     </div>
                   )}
-                  {req.status === 'APPROVED' && (
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 kanit-medium text-sm border border-emerald-100">
-                        <CheckCircle className="w-4 h-4 mr-1.5" /> {req.requires_return !== false ? "อนุมัติแล้ว" : "เบิกจ่ายสำเร็จ"}
+                  {req.status === 'APPROVED' && (() => {
+                    const overdueInfo = checkOverdue(req.due_date);
+                    return (
+                      <div className="flex flex-col items-end gap-2">
+                        {req.requires_return !== false && overdueInfo.isOverdue ? (
+                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-rose-50 text-rose-600 kanit-medium text-sm border border-rose-100 animate-pulse">
+                            <Clock className="w-4 h-4 mr-1.5" /> เลยกำหนดส่งคืน
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 kanit-medium text-sm border border-emerald-100">
+                            <CheckCircle className="w-4 h-4 mr-1.5" /> {req.requires_return !== false ? "อนุมัติแล้ว" : "เบิกจ่ายสำเร็จ"}
+                          </div>
+                        )}
+                        {req.requires_return !== false && req.due_date && (
+                          <span className={`text-[11px] kanit-regular ${overdueInfo.colorClass}`}>
+                            {overdueInfo.text}
+                          </span>
+                        )}
+                        {req.requires_return !== false && (
+                          <button
+                            onClick={() => handleUserReturn(req.id)}
+                            disabled={returningId === req.id}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all cursor-pointer shadow-sm border ${
+                              overdueInfo.isOverdue 
+                                ? 'bg-rose-600 text-white hover:bg-rose-700 border-rose-700 animate-bounce' 
+                                : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-100'
+                            }`}
+                          >
+                            {returningId === req.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            )}
+                            ส่งคืนพัสดุ
+                          </button>
+                        )}
                       </div>
-                      {req.requires_return !== false && (
-                        <button
-                          onClick={() => handleUserReturn(req.id)}
-                          disabled={returningId === req.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all cursor-pointer shadow-sm border border-blue-100"
-                        >
-                          {returningId === req.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <RotateCcw className="w-3.5 h-3.5" />
-                          )}
-                          ส่งคืนพัสดุ
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                   {req.status === 'RETURN_PENDING' && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 kanit-medium text-sm border border-orange-100">
                       <Clock className="w-4 h-4 mr-1.5 animate-pulse" /> รอแอดมินยืนยันคืน

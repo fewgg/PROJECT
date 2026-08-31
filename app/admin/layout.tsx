@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, ListTree, ClipboardCheck, ArrowDownToLine, Settings, MessageCircle, History } from "lucide-react";
+import { LayoutDashboard, Package, ListTree, ClipboardCheck, ArrowDownToLine, Settings, MessageCircle, History, Clock } from "lucide-react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { name: "จัดการพัสดุ", href: "/admin/materials", icon: Package },
     { name: "จัดการหมวดหมู่", href: "/admin/categories", icon: ListTree },
     { name: "อนุมัติเบิกพัสดุ", href: "/admin/requests", icon: ClipboardCheck },
+    { name: "สถานะผู้เบิก", href: "/admin/borrows", icon: Clock },
     { name: "ประวัติการคืนพัสดุ", href: "/admin/returns", icon: History },
     { name: "รับของเข้าคลัง", href: "/admin/stock-in", icon: ArrowDownToLine },
     { name: "ข้อความ", href: "/admin/chat", icon: MessageCircle },

@@ -111,6 +111,9 @@ export default function AdminRequestsClient({
                       <div>
                         <p className="kanit-medium text-slate-800">{req.material_name}</p>
                         <p className="text-xs text-slate-500">จำนวนที่เบิก: <strong className="text-slate-800">{req.quantity}</strong> {req.unit || 'ชิ้น'}</p>
+                        {req.borrow_duration_days && (
+                          <p className="text-[10px] text-blue-600 kanit-medium mt-0.5">ระยะเวลาขอยืม: {req.borrow_duration_days} วัน</p>
+                        )}
                       </div>
                     </div>
                     {req.remark && <p className="text-xs text-slate-400 mt-1 italic">หมายเหตุ: "{req.remark}"</p>}

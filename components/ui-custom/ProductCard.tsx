@@ -1,10 +1,11 @@
-"use client";
-
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Heart } from "lucide-react";
 import { useCart } from "../providers/CartProvider";
 import Link from "next/link";
+import { toggleFavorite } from "@/app/actions/favorites";
+import { toast } from "sonner";
 
 export type ProductStatus = "AVAILABLE" | "LOW_STOCK" | "OUT_OF_STOCK";
 
@@ -17,10 +18,30 @@ export interface ProductCardProps {
   unit: string;
   category?: string;
   requires_return?: boolean;
+  isFavorited?: boolean;
 }
 
-export function ProductCard({ id, name, image, quantity, status, unit, requires_return }: ProductCardProps) {
+export function ProductCard({ id, name, image, quantity, status, unit, requires_return, isFavorited = false }: ProductCardProps) {
   const { addToCart } = useCart();
+  const [isFav, setIsFav] = useState(isFavorited);
+
+  useEffect(() => {
+    setIsFav(isFavorited);
+  }, [isFavorited]);
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newStatus = !isFav;
+    setIsFav(newStatus);
+    const res = await toggleFavorite(id);
+    if (!res.success) {
+      setIsFav(!newStatus);
+      toast.error(res.error || "ไม่สามารถจัดการรายการโปรดได้");
+    } else {
+      toast.success(res.isFavorited ? "เพิ่มลงในรายการโปรดแล้ว" : "นำออกจากรายการโปรดแล้ว");
+    }
+  };
   
   const product = { id, name, image, quantity, status, unit, requires_return };
 
@@ -36,6 +57,15 @@ export function ProductCard({ id, name, image, quantity, status, unit, requires_
           alt={name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
+        
+        {/* Favorite Heart Button */}
+        <button
+          onClick={handleFavoriteClick}
+          className="absolute top-3 left-3 p-2 rounded-xl bg-white/80 hover:bg-white text-rose-500 border border-slate-100 shadow-sm backdrop-blur-md transition-all scale-95 group-hover:scale-100 cursor-pointer z-10"
+        >
+          <Heart className={`w-4 h-4 transition-transform active:scale-75 ${isFav ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+        </button>
+
         <div className="absolute top-3 right-3">
           {status === "AVAILABLE" && (
             <Badge className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-none shadow-sm backdrop-blur-md">
