@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, User, Mail, Calendar, Building, ShieldAlert, ShieldCheck, Loader2, Eye, UserX, UserCheck } from "lucide-react";
+import { Search, User, Mail, Calendar, Building, ShieldAlert, ShieldCheck, Loader2, Eye, UserX, UserCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { toggleUserSuspension } from "@/app/actions/user";
+import { toggleUserSuspension, deleteUser } from "@/app/actions/user";
 import { SerializedClerkUser } from "./page";
 
 interface AdminUsersClientProps {
@@ -19,6 +19,7 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [suspendingId, setSuspendingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleToggleSuspension = async (userId: string, isCurrentlySuspended: boolean) => {
     setSuspendingId(userId);
@@ -34,6 +35,21 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
       toast.error(res.error || "เกิดข้อผิดพลาด");
     }
     setSuspendingId(null);
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (confirm(`ยืนยันการลบสมาชิก "${userName}"? การลบนี้จะไม่สามารถย้อนกลับได้ และจะเป็นการลบบัญชีออกจากระบบอย่างถาวร!`)) {
+      setDeletingId(userId);
+      const res = await deleteUser(userId);
+      if (res.success) {
+        toast.success("ลบสมาชิกเรียบร้อยแล้ว");
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        router.refresh();
+      } else {
+        toast.error(res.error || "เกิดข้อผิดพลาดในการลบ");
+      }
+      setDeletingId(null);
+    }
   };
 
   const filteredUsers = users.filter((u) => {
@@ -219,28 +235,45 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                         <Eye className="w-4 h-4" />
                       </Link>
 
-                      {/* Suspend Toggle button (only for non-admin users) */}
+                      {/* Actions for non-admin users */}
                       {user.role !== 'admin' ? (
-                        <button
-                          onClick={() => handleToggleSuspension(user.id, user.isSuspended)}
-                          disabled={suspendingId === user.id}
-                          className={`p-2 rounded-lg transition-all cursor-pointer border ${
-                            user.isSuspended
-                              ? "text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-100"
-                              : "text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-100"
-                          }`}
-                          title={user.isSuspended ? "ปลดการระงับสิทธิ์" : "ระงับสิทธิ์การเบิก"}
-                        >
-                          {suspendingId === user.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : user.isSuspended ? (
-                            <ShieldCheck className="w-4 h-4" />
-                          ) : (
-                            <ShieldAlert className="w-4 h-4" />
-                          )}
-                        </button>
+                        <>
+                          {/* Suspend Toggle button */}
+                          <button
+                            onClick={() => handleToggleSuspension(user.id, user.isSuspended)}
+                            disabled={suspendingId === user.id || deletingId === user.id}
+                            className={`p-2 rounded-lg transition-all cursor-pointer border ${
+                              user.isSuspended
+                                ? "text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-100"
+                                : "text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-100"
+                            }`}
+                            title={user.isSuspended ? "ปลดการระงับสิทธิ์" : "ระงับสิทธิ์การเบิก"}
+                          >
+                            {suspendingId === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : user.isSuspended ? (
+                              <ShieldCheck className="w-4 h-4" />
+                            ) : (
+                              <ShieldAlert className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {/* Delete User button */}
+                          <button
+                            onClick={() => handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)}
+                            disabled={suspendingId === user.id || deletingId === user.id}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all cursor-pointer"
+                            title="ลบสมาชิกอย่างถาวร"
+                          >
+                            {deletingId === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </>
                       ) : (
-                        <div className="w-8"></div> // Spacer for alignment
+                        <div className="w-20"></div> // Spacer for alignment
                       )}
                     </div>
                   </td>
