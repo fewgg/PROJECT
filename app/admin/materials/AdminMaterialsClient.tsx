@@ -30,13 +30,9 @@ export default function AdminMaterialsClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   //********************************//
-  // ดึงรายการหมวดหมู่ทั้งหมดสำหรับให้เลือก
+  // ดึงรายการหมวดหมู่ทั้งหมดสำหรับให้เลือก (ดึงจากตารางหมวดหมู่โดยตรง เพื่อไม่ให้หมวดหมู่ที่ถูกลบไปแล้วแสดงขึ้นมา)
   //********************************//
-  const availableCategories = Array.from(new Set([
-    ...categories.map(c => c.name),
-    ...DEFAULT_CATEGORIES,
-    ...materials.map(m => m.category).filter(Boolean)
-  ]));
+  const availableCategories = categories.map(c => c.name);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Material>>({

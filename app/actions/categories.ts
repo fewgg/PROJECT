@@ -121,9 +121,19 @@ export async function deleteCategory(id: string) {
       throw new Error("Unauthorized");
     }
 
-    await sql`DELETE FROM categories WHERE id = ${id}`;
+    const [oldCat] = await sql`SELECT name FROM categories WHERE id = ${id}`;
+
+    await sql.begin(async (sql) => {
+      await sql`DELETE FROM categories WHERE id = ${id}`;
+      if (oldCat) {
+        await sql`UPDATE materials SET category = 'ไม่มีหมวดหมู่' WHERE category = ${oldCat.name}`;
+      }
+    });
     
     revalidatePath("/admin/categories");
+    revalidatePath("/admin/materials");
+    revalidatePath("/inventory");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting category:", error);
