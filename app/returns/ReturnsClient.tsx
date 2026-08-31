@@ -19,6 +19,7 @@ type Transaction = {
   updated_at: string;
   material_name?: string;
   material_image?: string;
+  requires_return?: boolean;
 };
 
 export default function ReturnsClient({ initialRequests }: { initialRequests: Transaction[] }) {
@@ -158,7 +159,16 @@ export default function ReturnsClient({ initialRequests }: { initialRequests: Tr
                 </div>
                 <div>
                   <h3 className="kanit-medium text-lg text-slate-800">{req.material_name}</h3>
-                  <div className="text-sm kanit-regular text-slate-500 mt-1 space-y-1">
+                  <div className="flex gap-1.5 my-1 items-center">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium kanit-medium ${
+                      req.requires_return !== false
+                        ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                        : 'bg-orange-50 text-orange-700 border border-orange-100'
+                    }`}>
+                      {req.requires_return !== false ? 'ทรัพย์สินคงทนถาวร' : 'สิ้นเปลือง/คงทนอายุสั้น'}
+                    </span>
+                  </div>
+                  <div className="text-sm kanit-regular text-slate-500 space-y-1">
                     <p>เลขที่คำร้อง: {req.id.substring(0, 8)}...</p>
                     {req.department && <p className="text-blue-600 kanit-medium">สาขาที่รับ: {req.department}</p>}
                     <p className="flex items-center gap-1">

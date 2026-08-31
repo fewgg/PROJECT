@@ -23,6 +23,7 @@ export type Transaction = {
   material_image?: string;
   user_name?: string;
   unit?: string;
+  requires_return?: boolean;
 };
 
 // Create a new material request (user)
@@ -111,8 +112,8 @@ export async function getPendingRequests() {
     if (!userId) throw new Error("Unauthorized");
 
     // Fetch transactions with material details
-    const transactions = await sql<Transaction[]>`
-      SELECT t.*, m.name as material_name, m.image as material_image 
+    const transactions = await sql<any[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image, m.requires_return 
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
       WHERE t.type = 'OUTBOUND' AND t.status = 'PENDING'
@@ -130,7 +131,8 @@ export async function getPendingRequests() {
       const u = users.data.find(user => user.id === t.user_id);
       return {
         ...t,
-        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress) : "Unknown User"
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress) : "Unknown User",
+        requires_return: t.requires_return !== false
       };
     });
   } catch (error) {
@@ -199,8 +201,8 @@ export async function getUserRequests() {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
-    const transactions = await sql<Transaction[]>`
-      SELECT t.*, m.name as material_name, m.image as material_image 
+    const transactions = await sql<any[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image, m.requires_return
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
       WHERE t.user_id = ${userId} AND t.type = 'OUTBOUND'
@@ -218,7 +220,8 @@ export async function getUserRequests() {
       created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
       updated_at: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
       material_name: String(t.material_name || ''),
-      material_image: String(t.material_image || '')
+      material_image: String(t.material_image || ''),
+      requires_return: t.requires_return !== false
     }));
   } catch (error) {
     console.error("Error fetching user requests:", error);
@@ -333,8 +336,8 @@ export async function getReturnRequests() {
       throw new Error("Unauthorized");
     }
 
-    const transactions = await sql<Transaction[]>`
-      SELECT t.*, m.name as material_name, m.image as material_image, m.unit
+    const transactions = await sql<any[]>`
+      SELECT t.*, m.name as material_name, m.image as material_image, m.unit, m.requires_return
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
       WHERE t.type = 'OUTBOUND' AND t.status IN ('RETURN_PENDING', 'COMPLETED', 'RETURN_REJECTED')
@@ -358,7 +361,8 @@ export async function getReturnRequests() {
       const u = users.data.find(user => user.id === t.user_id);
       return {
         ...t,
-        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User"
+        user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress || "Unknown") : "Unknown User",
+        requires_return: t.requires_return !== false
       };
     });
   } catch (error) {

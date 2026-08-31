@@ -19,6 +19,7 @@ export type Material = {
   status: string;
   unit: string;
   category: string;
+  requires_return: boolean;
 };
 
 //********************************//
@@ -26,7 +27,7 @@ export type Material = {
 //********************************//
 export async function getMaterials() {
   try {
-    const materials = await sql<Material[]>`
+    const materials = await sql<any[]>`
       SELECT * FROM materials ORDER BY created_at DESC
     `;
     return materials.map(m => ({
@@ -36,7 +37,8 @@ export async function getMaterials() {
       quantity: Number(m.quantity || 0),
       status: String(m.status || ''),
       unit: String(m.unit || ''),
-      category: String(m.category || '')
+      category: String(m.category || ''),
+      requires_return: m.requires_return !== false
     }));
   } catch (error) {
     console.error("Error fetching materials:", error);
@@ -49,10 +51,19 @@ export async function getMaterials() {
 //********************************//
 export async function getRecommendedMaterials() {
   try {
-    const materials = await sql<Material[]>`
+    const materials = await sql<any[]>`
       SELECT * FROM materials ORDER BY updated_at DESC LIMIT 5
     `;
-    return materials;
+    return materials.map(m => ({
+      id: String(m.id),
+      name: String(m.name || ''),
+      image: String(m.image || ''),
+      quantity: Number(m.quantity || 0),
+      status: String(m.status || ''),
+      unit: String(m.unit || ''),
+      category: String(m.category || ''),
+      requires_return: m.requires_return !== false
+    }));
   } catch (error) {
     console.error("Error fetching recommended materials:", error);
     return [];
@@ -64,10 +75,21 @@ export async function getRecommendedMaterials() {
 //********************************//
 export async function getMaterialById(id: string) {
   try {
-    const materials = await sql<Material[]>`
+    const materials = await sql<any[]>`
       SELECT * FROM materials WHERE id = ${id} LIMIT 1
     `;
-    return materials[0] || null;
+    if (!materials[0]) return null;
+    const m = materials[0];
+    return {
+      id: String(m.id),
+      name: String(m.name || ''),
+      image: String(m.image || ''),
+      quantity: Number(m.quantity || 0),
+      status: String(m.status || ''),
+      unit: String(m.unit || ''),
+      category: String(m.category || ''),
+      requires_return: m.requires_return !== false
+    };
   } catch (error) {
     console.error("Error fetching material by ID:", error);
     return null;
@@ -83,14 +105,14 @@ export async function addMaterial(data: Omit<Material, "id">) {
     const id = `${data.category === 'พัสดุสำนักงาน' ? 'off' : 'item'}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
     await sql`
-      INSERT INTO materials (id, name, image, quantity, status, unit, category)
+      INSERT INTO materials (id, name, image, quantity, status, unit, category, requires_return)
       VALUES (${id}, ${data.name}, ${data.image}, ${data.quantity}, 
         CASE 
           WHEN ${data.quantity} <= 0 THEN 'OUT_OF_STOCK'
           WHEN ${data.quantity} <= 5 THEN 'LOW_STOCK'
           ELSE 'AVAILABLE'
         END, 
-        ${data.unit}, ${data.category})
+        ${data.unit}, ${data.category}, ${data.requires_return})
     `;
     
     revalidatePath("/admin/materials");
@@ -120,6 +142,7 @@ export async function updateMaterial(id: string, data: Partial<Material>) {
                  END,
         unit = ${data.unit ?? sql`unit`},
         category = ${data.category ?? sql`category`},
+        requires_return = ${data.requires_return !== undefined ? data.requires_return : sql`requires_return`},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
     `;

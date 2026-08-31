@@ -16,12 +16,13 @@ export interface ProductCardProps {
   status: ProductStatus;
   unit: string;
   category?: string;
+  requires_return?: boolean;
 }
 
-export function ProductCard({ id, name, image, quantity, status, unit }: ProductCardProps) {
+export function ProductCard({ id, name, image, quantity, status, unit, requires_return }: ProductCardProps) {
   const { addToCart } = useCart();
   
-  const product = { id, name, image, quantity, status, unit };
+  const product = { id, name, image, quantity, status, unit, requires_return };
 
   return (
     <motion.div
@@ -57,6 +58,15 @@ export function ProductCard({ id, name, image, quantity, status, unit }: Product
         <Link href={`/inventory/${id}`}>
           <h3 className="kanit-medium text-slate-800 text-lg mb-1 line-clamp-1 cursor-pointer hover:text-blue-600 transition-colors">{name}</h3>
         </Link>
+        <div className="mb-2">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium kanit-medium ${
+            requires_return 
+              ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+              : 'bg-orange-50 text-orange-700 border border-orange-100'
+          }`}>
+            {requires_return ? 'ทรัพย์สินคงทนถาวร' : 'สิ้นเปลือง/คงทนอายุสั้น'}
+          </span>
+        </div>
         <p className="kanit-regular text-slate-500 text-sm mb-4">
           คงเหลือ: <span className="kanit-semibold text-slate-700">{quantity}</span> {unit}
         </p>

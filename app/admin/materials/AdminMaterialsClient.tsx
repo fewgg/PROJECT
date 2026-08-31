@@ -40,7 +40,7 @@ export default function AdminMaterialsClient({
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Material>>({
-    name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: availableCategories[0] || "พัสดุคอมพิวเตอร์และไอที"
+    name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: availableCategories[0] || "พัสดุคอมพิวเตอร์และไอที", requires_return: true
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -57,7 +57,7 @@ export default function AdminMaterialsClient({
   //********************************//
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: availableCategories[0] || "พัสดุคอมพิวเตอร์และไอที" });
+    setFormData({ name: "", image: "", quantity: 0, status: "AVAILABLE", unit: "", category: availableCategories[0] || "พัสดุคอมพิวเตอร์และไอที", requires_return: true });
     setSelectedFile(null);
     setIsModalOpen(true);
   };
@@ -67,7 +67,10 @@ export default function AdminMaterialsClient({
   //********************************//
   const openEditModal = (item: Material) => {
     setEditingId(item.id);
-    setFormData(item);
+    setFormData({
+      ...item,
+      requires_return: item.requires_return !== false
+    });
     setSelectedFile(null);
     setIsModalOpen(true);
   };
@@ -247,7 +250,16 @@ export default function AdminMaterialsClient({
                   </td>
                   <td className="px-6 py-4">
                     <p className="kanit-medium text-sm text-slate-800">{item.name}</p>
-                    <p className="kanit-regular text-xs text-slate-500">ID: {item.id}</p>
+                    <div className="flex gap-1.5 mt-1 items-center">
+                      <span className="kanit-regular text-[11px] text-slate-500">ID: {item.id}</span>
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium kanit-medium ${
+                        item.requires_return 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                          : 'bg-orange-50 text-orange-700 border border-orange-100'
+                      }`}>
+                        {item.requires_return ? 'ทรัพย์สินคงทนถาวร' : 'สิ้นเปลือง/คงทนอายุสั้น'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 kanit-regular">
@@ -342,6 +354,40 @@ export default function AdminMaterialsClient({
                 <div>
                   <label className="block text-sm kanit-medium text-slate-700 mb-1">หน่วยนับ</label>
                   <input required type="text" placeholder="เช่น อัน, ชิ้น, รีม" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg kanit-regular text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm kanit-medium text-slate-700 mb-1.5">ประเภทการคืนพัสดุ</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={`flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${
+                    formData.requires_return !== false
+                      ? "border-blue-500 bg-blue-50/50 text-blue-700"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="requires_return"
+                      checked={formData.requires_return !== false}
+                      onChange={() => setFormData({ ...formData, requires_return: true })}
+                      className="sr-only"
+                    />
+                    <span className="text-xs kanit-medium">ต้องคืน (ทรัพย์สินคงทนถาวร)</span>
+                  </label>
+                  <label className={`flex items-center justify-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${
+                    formData.requires_return === false
+                      ? "border-orange-500 bg-orange-50/50 text-orange-700"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="requires_return"
+                      checked={formData.requires_return === false}
+                      onChange={() => setFormData({ ...formData, requires_return: false })}
+                      className="sr-only"
+                    />
+                    <span className="text-xs kanit-medium">ไม่ต้องคืน (สิ้นเปลือง/คงทนอายุสั้น)</span>
+                  </label>
                 </div>
               </div>
 

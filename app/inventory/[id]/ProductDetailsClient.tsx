@@ -76,9 +76,16 @@ export default function ProductDetailsClient({
 
         {/* รายละเอียดด้านขวา */}
         <div className="w-full md:w-1/2 lg:w-3/5 flex flex-col justify-center">
-          <div className="mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700 kanit-medium">
               {product.category || "หมวดหมู่ทั่วไป"}
+            </span>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium kanit-medium ${
+              product.requires_return !== false
+                ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                : 'bg-orange-100 text-orange-800 border border-orange-200'
+            }`}>
+              {product.requires_return !== false ? 'ต้องคืน (ทรัพย์สินคงทนถาวร)' : 'ไม่ต้องคืน (สิ้นเปลือง/คงทนอายุสั้น)'}
             </span>
           </div>
           
