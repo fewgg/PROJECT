@@ -53,6 +53,14 @@ export async function addCategory(name: string, requires_return: boolean = false
       throw new Error("Unauthorized");
     }
 
+    // Check for duplicate category name (case-insensitive and trimmed)
+    const [existing] = await sql`
+      SELECT id FROM categories WHERE TRIM(LOWER(name)) = TRIM(LOWER(${name})) LIMIT 1
+    `;
+    if (existing) {
+      return { success: false, error: "มีหมวดหมู่นี้อยู่แล้ว" };
+    }
+
     await sql`
       INSERT INTO categories (name, requires_return) VALUES (${name}, ${requires_return})
     `;
@@ -81,6 +89,14 @@ export async function updateCategory(id: string, name: string, requires_return: 
     const user = await client.users.getUser(userId);
     if (user.publicMetadata?.role !== "admin") {
       throw new Error("Unauthorized");
+    }
+
+    // Check for duplicate category name (case-insensitive and trimmed)
+    const [existing] = await sql`
+      SELECT id FROM categories WHERE TRIM(LOWER(name)) = TRIM(LOWER(${name})) AND id != ${id} LIMIT 1
+    `;
+    if (existing) {
+      return { success: false, error: "มีหมวดหมู่นี้อยู่แล้ว" };
     }
 
     // Optional: we can also update all materials that use this category name to the new name,

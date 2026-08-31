@@ -114,7 +114,7 @@ export default function AdminMaterialsClient({
         toast.success("แก้ไขพัสดุสำเร็จ");
         setIsModalOpen(false);
       } else {
-        toast.error("เกิดข้อผิดพลาดในการแก้ไข");
+        toast.error("เกิดข้อผิดพลาดในการแก้ไข: " + res.error);
       }
     } else {
       const res = await addMaterial(finalFormData as Omit<Material, "id">);
@@ -125,7 +125,7 @@ export default function AdminMaterialsClient({
         // Soft reload to get new ID from server
         window.location.reload();
       } else {
-        toast.error("เกิดข้อผิดพลาดในการเพิ่ม");
+        toast.error("เกิดข้อผิดพลาดในการเพิ่ม: " + res.error);
       }
     }
     

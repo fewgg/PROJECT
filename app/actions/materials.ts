@@ -101,6 +101,14 @@ export async function getMaterialById(id: string) {
 //********************************//
 export async function addMaterial(data: Omit<Material, "id">) {
   try {
+    // Check for duplicate material name (case-insensitive and trimmed)
+    const [existing] = await sql`
+      SELECT id FROM materials WHERE TRIM(LOWER(name)) = TRIM(LOWER(${data.name})) LIMIT 1
+    `;
+    if (existing) {
+      return { success: false, error: "มีพัสดุชื่อนี้อยู่แล้ว" };
+    }
+
     // Lookup requires_return from categories table based on data.category
     const [categoryRow] = await sql`
       SELECT requires_return FROM categories WHERE name = ${data.category} LIMIT 1
@@ -136,6 +144,16 @@ export async function addMaterial(data: Omit<Material, "id">) {
 //********************************//
 export async function updateMaterial(id: string, data: Partial<Material>) {
   try {
+    if (data.name) {
+      // Check for duplicate material name (case-insensitive and trimmed)
+      const [existing] = await sql`
+        SELECT id FROM materials WHERE TRIM(LOWER(name)) = TRIM(LOWER(${data.name})) AND id != ${id} LIMIT 1
+      `;
+      if (existing) {
+        return { success: false, error: "มีพัสดุชื่อนี้อยู่แล้ว" };
+      }
+    }
+
     let requires_return = undefined;
     if (data.category) {
       // Lookup requires_return from categories table based on data.category
