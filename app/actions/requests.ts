@@ -21,6 +21,7 @@ export type Transaction = {
   // Joined fields
   material_name?: string;
   material_image?: string;
+  material_stock?: number;
   user_name?: string;
   unit?: string;
   requires_return?: boolean;
@@ -76,7 +77,18 @@ export async function createRequest(materialId: string, quantity: number, remark
         `;
       } else {
         const dueDate = duration ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000) : null;
+        let autoApproveSuccess = false;
+
         await sql.begin(async (sql) => {
+          // Lock row and check stock again inside transaction
+          const [mat] = await sql`SELECT quantity FROM materials WHERE id = ${materialId} FOR UPDATE`;
+          if (!mat || Number(mat.quantity) < quantity) {
+            // Fallback to PENDING if stock was reduced concurrently
+            return;
+          }
+
+          autoApproveSuccess = true;
+
           // 1. Insert transaction as APPROVED
           await sql`
             INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department, borrow_duration_days, due_date)
@@ -96,6 +108,13 @@ export async function createRequest(materialId: string, quantity: number, remark
             WHERE id = ${materialId}
           `;
         });
+
+        if (!autoApproveSuccess) {
+          await sql`
+            INSERT INTO transactions (material_id, user_id, type, quantity, status, remark, department, borrow_duration_days, due_date)
+            VALUES (${materialId}, ${userId}, 'OUTBOUND', ${quantity}, 'PENDING', ${remark || null}, ${department}, ${duration}, null)
+          `;
+        }
       }
     } else {
       await sql`
@@ -123,15 +142,17 @@ export async function getPendingRequests() {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
-    // Fetch transactions with material details
+    // Fetch transactions with material details and current stock
     const transactions = await sql<any[]>`
-      SELECT t.*, m.name as material_name, m.image as material_image, m.requires_return 
+      SELECT t.*, m.name as material_name, m.image as material_image, m.requires_return, m.quantity as material_stock, m.unit 
       FROM transactions t
       JOIN materials m ON t.material_id = m.id
       WHERE t.type = 'OUTBOUND' AND t.status = 'PENDING'
       ORDER BY t.created_at ASC
     `;
     
+    if (transactions.length === 0) return [];
+
     // Fetch user details from Clerk
     const client = await clerkClient();
     const users = await client.users.getUserList({
@@ -145,6 +166,8 @@ export async function getPendingRequests() {
         ...t,
         user_name: u ? (u.fullName || u.primaryEmailAddress?.emailAddress) : "Unknown User",
         requires_return: t.requires_return !== false,
+        material_stock: t.material_stock !== undefined ? Number(t.material_stock) : 0,
+        unit: t.unit || 'ชิ้น',
         borrow_duration_days: t.borrow_duration_days ? Number(t.borrow_duration_days) : null,
         due_date: t.due_date ? new Date(t.due_date).toISOString() : null,
         created_at: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
@@ -162,8 +185,9 @@ export async function getPendingRequests() {
 export async function updateRequestStatus(transactionId: string, newStatus: "APPROVED" | "REJECTED") {
   try {
     const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
     const client = await clerkClient();
-    const user = await client.users.getUser(userId!);
+    const user = await client.users.getUser(userId);
     
     if (user.publicMetadata?.role !== "admin") {
       throw new Error("Unauthorized");
@@ -174,10 +198,26 @@ export async function updateRequestStatus(transactionId: string, newStatus: "APP
       const [tx] = await sql`
         SELECT * FROM transactions WHERE id = ${transactionId} AND status = 'PENDING'
       `;
-      if (!tx) throw new Error("Transaction not found or already processed");
+      if (!tx) throw new Error("ไม่พบรายการคำร้อง หรือรายการนี้ได้รับการดำเนินการไปแล้ว");
 
-      // Update transaction status and due_date
       if (newStatus === "APPROVED") {
+        // Lock material row and check available quantity
+        const [material] = await sql`
+          SELECT name, quantity FROM materials WHERE id = ${tx.material_id} FOR UPDATE
+        `;
+
+        if (!material) {
+          throw new Error("ไม่พบข้อมูลพัสดุในระบบ");
+        }
+
+        const currentStock = Number(material.quantity);
+        const reqQty = Number(tx.quantity);
+
+        if (currentStock < reqQty) {
+          throw new Error(`ไม่สามารถอนุมัติได้ เนื่องจากพัสดุ "${material.name}" ในคลังไม่เพียงพอ (คงเหลือ ${currentStock} ชิ้น / ขอเบิก ${reqQty} ชิ้น)`);
+        }
+
+        // Update transaction status and due_date
         await sql`
           UPDATE transactions SET 
             status = ${newStatus}, 
@@ -188,25 +228,23 @@ export async function updateRequestStatus(transactionId: string, newStatus: "APP
             updated_at = CURRENT_TIMESTAMP
           WHERE id = ${transactionId}
         `;
-      } else {
-        await sql`
-          UPDATE transactions SET status = ${newStatus}, updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${transactionId}
-        `;
-      }
 
-      // If approved, deduct material quantity
-      if (newStatus === "APPROVED") {
+        // Deduct material quantity
         await sql`
           UPDATE materials 
-          SET quantity = quantity - ${tx.quantity},
+          SET quantity = quantity - ${reqQty},
               status = CASE 
-                         WHEN (quantity - ${tx.quantity}) <= 0 THEN 'OUT_OF_STOCK'
-                         WHEN (quantity - ${tx.quantity}) <= 5 THEN 'LOW_STOCK'
+                         WHEN (quantity - ${reqQty}) <= 0 THEN 'OUT_OF_STOCK'
+                         WHEN (quantity - ${reqQty}) <= 5 THEN 'LOW_STOCK'
                          ELSE 'AVAILABLE'
                        END,
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ${tx.material_id}
+        `;
+      } else {
+        await sql`
+          UPDATE transactions SET status = ${newStatus}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${transactionId}
         `;
       }
     });
@@ -217,9 +255,9 @@ export async function updateRequestStatus(transactionId: string, newStatus: "APP
     revalidatePath("/inventory");
     revalidatePath("/");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating request status:", error);
-    return { success: false, error: "Failed to update request status" };
+    return { success: false, error: error.message || "Failed to update request status" };
   }
 }
 

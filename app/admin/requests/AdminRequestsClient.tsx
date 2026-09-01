@@ -24,7 +24,12 @@ export default function AdminRequestsClient({
     return matchesSearch;
   });
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, req?: Transaction) => {
+    if (req && req.material_stock !== undefined && req.material_stock < req.quantity) {
+      toast.error(`ไม่สามารถอนุมัติได้ เนื่องจากพัสดุในคลังไม่เพียงพอ (คงเหลือ ${req.material_stock} ${req.unit || 'ชิ้น'} / ขอเบิก ${req.quantity} ${req.unit || 'ชิ้น'})`);
+      return;
+    }
+
     if (confirm("ยืนยันการอนุมัติคำร้องนี้?")) {
       setProcessingId(id);
       const res = await updateRequestStatus(id, "APPROVED");
@@ -32,7 +37,7 @@ export default function AdminRequestsClient({
         setRequests(prev => prev.filter(r => r.id !== id));
         toast.success("อนุมัติคำร้องเรียบร้อย");
       } else {
-        toast.error("เกิดข้อผิดพลาด: " + res.error);
+        toast.error("เกิดข้อผิดพลาด: " + (res.error || "ไม่สามารถอนุมัติคำร้องได้"));
       }
       setProcessingId(null);
     }
@@ -111,6 +116,16 @@ export default function AdminRequestsClient({
                       <div>
                         <p className="kanit-medium text-slate-800">{req.material_name}</p>
                         <p className="text-xs text-slate-500">จำนวนที่เบิก: <strong className="text-slate-800">{req.quantity}</strong> {req.unit || 'ชิ้น'}</p>
+                        {req.material_stock !== undefined && (
+                          <p className={`text-xs kanit-medium mt-0.5 ${req.material_stock < req.quantity ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                            คงเหลือในคลัง: {req.material_stock} {req.unit || 'ชิ้น'}
+                            {req.material_stock < req.quantity && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-700 font-semibold">
+                                ⚠️ สินค้าในคลังไม่พอ
+                              </span>
+                            )}
+                          </p>
+                        )}
                         {req.borrow_duration_days && (
                           <p className="text-[10px] text-blue-600 kanit-medium mt-0.5">ระยะเวลาขอยืม: {req.borrow_duration_days} วัน</p>
                         )}
@@ -124,10 +139,14 @@ export default function AdminRequestsClient({
                   <td className="px-6 py-4 text-right whitespace-nowrap">
                     <div className="flex justify-end gap-2">
                       <button 
-                        onClick={() => handleApprove(req.id)}
+                        onClick={() => handleApprove(req.id, req)}
                         disabled={processingId === req.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white disabled:opacity-50 rounded-lg text-xs kanit-medium transition-all"
-                        title="อนุมัติการเบิก"
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs kanit-medium transition-all ${
+                          req.material_stock !== undefined && req.material_stock < req.quantity
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white disabled:opacity-50'
+                        }`}
+                        title={req.material_stock !== undefined && req.material_stock < req.quantity ? "พัสดุในคลังไม่เพียงพอ" : "อนุมัติการเบิก"}
                       >
                         {processingId === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                         อนุมัติ
